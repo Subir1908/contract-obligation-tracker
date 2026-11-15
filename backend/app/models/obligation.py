@@ -15,7 +15,8 @@ class Obligation(Base):
     currency = Column(String(10), nullable=True)  # USD, INR, EUR, etc.
     late_penalty = Column(Text, nullable=True)
     source_clause = Column(Text, nullable=True)
-    verification_status = Column(String(50), default="PENDING", nullable=False)  # PENDING, VERIFIED
+    category = Column(String(50), default="Deliverable", nullable=False)
+    verification_status = Column(String(50), default="UNVERIFIED", nullable=False)  # UNVERIFIED, VERIFIED
     deadline_status = Column(String(50), default="UPCOMING", nullable=False)      # UPCOMING, DUE_TODAY, OVERDUE, NONE
     risk_level = Column(String(50), default="LOW", nullable=False)               # LOW, MEDIUM, HIGH
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
