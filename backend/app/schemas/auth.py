@@ -1,12 +1,12 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field
 from datetime import datetime
 
 class UserRegister(BaseModel):
-    email: EmailStr
-    password: str
+    email: str = Field(..., pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$", description="User email address")
+    password: str = Field(..., min_length=6, description="User password (min 6 chars)")
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 class Token(BaseModel):

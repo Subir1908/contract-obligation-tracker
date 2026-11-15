@@ -195,7 +195,7 @@ def get_contract_obligations(
 @router.get("/{contract_id}/export")
 def export_contract_obligations(
     contract_id: int,
-    format: str = Query("csv", regex="^(csv|xlsx|ics)$"),
+    format: str = Query("csv", pattern="^(csv|xlsx|ics)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
