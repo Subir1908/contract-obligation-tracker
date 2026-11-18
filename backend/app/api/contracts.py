@@ -19,9 +19,9 @@ from app.services.deadline_tracker import calculate_deadline_status
 from app.services.risk_scorer import calculate_risk_level
 from app.services.export_service import export_to_csv, export_to_xlsx, export_to_ics
 try:
-    from backend.nlp.extractor import extract_obligations
+    from app.nlp.extractor import extract_obligations
 except ImportError:
-    from nlp.extractor import extract_obligations
+    from app.nlp.extractor import extract_obligations
 
 router = APIRouter(prefix="/api/contracts", tags=["Contracts"])
 
