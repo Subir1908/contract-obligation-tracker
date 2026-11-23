@@ -16,7 +16,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import type { UserAccount, UserRole } from '../types/auth';
-import { authenticateUser, registerUser } from '../utils/authService';
+import { loginWithBackend, registerWithBackend } from '../services/api';
 
 interface AuthModalProps {
   currentUser: UserAccount | null;
@@ -34,9 +34,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onLogout,
 }) => {
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
-  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Login fields
-  const [loginEmail, setLoginEmail] = useState('mihir.csm25008@tezpur.ac.in');
+  const [loginEmail, setLoginEmail] = useState('subir.csm25011@tezpur.ac.in');
   const [loginPassword, setLoginPassword] = useState('admin123');
 
   // Register fields
@@ -50,11 +51,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+    setIsSubmitting(true);
 
-    const res = authenticateUser(loginEmail, loginPassword);
+    const res = await loginWithBackend(loginEmail, loginPassword);
+    setIsSubmitting(false);
+
     if (res.success && res.user) {
       onAuthSuccess(res.user);
       onClose();
@@ -63,7 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -72,13 +76,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const res = registerUser({
+    setIsSubmitting(true);
+    const res = await registerWithBackend({
       name: regName,
       email: regEmail,
       password: regPassword,
       organization: regOrg,
       role: regRole,
     });
+    setIsSubmitting(false);
 
     if (res.success && res.user) {
       onAuthSuccess(res.user);
@@ -88,21 +94,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // Quick switch demo accounts to demonstrate FR-1.3 tenant data isolation
-  const handleSelectQuickAccount = (email: string, pass: string) => {
+  const handleSelectQuickAccount = async (email: string, pass: string) => {
     setLoginEmail(email);
     setLoginPassword(pass);
-    const res = authenticateUser(email, pass);
+    setErrorMessage('');
+    setIsSubmitting(true);
+
+    const res = await loginWithBackend(email, pass);
+    setIsSubmitting(false);
+
     if (res.success && res.user) {
       onAuthSuccess(res.user);
       onClose();
+    } else {
+      setErrorMessage(res.error || 'Quick login failed.');
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full overflow-hidden transition-all">
-        
+
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-900 p-6 text-white relative">
           <button
@@ -130,7 +142,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-6">
-          
+
           {currentUser ? (
             /* ACTIVE SESSION VIEW */
             <div className="space-y-4">
@@ -215,7 +227,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           ) : (
             /* LOGIN / REGISTER TABS */
             <div className="space-y-4">
-              
+
               {/* Tab Selector */}
               <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200">
                 <button
@@ -294,10 +306,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+                    disabled={isSubmitting}
+                    className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
                   >
                     <FileKey2 className="w-4 h-4" />
-                    <span>Authenticate & Issue Token (FR-1.2)</span>
+                    <span>{isSubmitting ? 'Authenticating...' : 'Authenticate & Issue Token (FR-1.2)'}</span>
                   </button>
 
                   {/* Quick-Switch Demo Tenants (Demonstrating FR-1.3 Isolation) */}
@@ -310,11 +323,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     <div className="grid grid-cols-1 gap-1.5">
                       <button
                         type="button"
-                        onClick={() => handleSelectQuickAccount('mihir.csm25008@tezpur.ac.in', 'admin123')}
-                        className="text-left p-2 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all text-xs flex items-center justify-between cursor-pointer"
+                        disabled={isSubmitting}
+                        onClick={() => handleSelectQuickAccount('subir.csm25011@tezpur.ac.in', 'admin123')}
+                        className="text-left p-2 rounded-xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all text-xs flex items-center justify-between cursor-pointer disabled:opacity-60"
                       >
                         <div>
-                          <div className="font-semibold text-slate-800">Mihir Kumar (Tezpur Legal Cell)</div>
+                          <div className="font-semibold text-slate-800">Subir Debnath (Tezpur Legal Cell)</div>
                           <div className="text-[10px] text-slate-500">Org: Tezpur University Legal Cell</div>
                         </div>
                         <ArrowRight className="w-3.5 h-3.5 text-blue-600" />
@@ -322,12 +336,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                       <button
                         type="button"
-                        onClick={() => handleSelectQuickAccount('external.auditor@tcs.com', 'admin123')}
-                        className="text-left p-2 rounded-xl border border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 transition-all text-xs flex items-center justify-between cursor-pointer"
+                        disabled={isSubmitting}
+                        onClick={() => handleSelectQuickAccount('mihir.csm25008@tezpur.ac.in', 'admin123')}
+                        className="text-left p-2 rounded-xl border border-slate-200 hover:border-purple-400 hover:bg-purple-50/50 transition-all text-xs flex items-center justify-between cursor-pointer disabled:opacity-60"
                       >
                         <div>
-                          <div className="font-semibold text-slate-800">TCS Auditor (Vendor Tenant)</div>
-                          <div className="text-[10px] text-slate-500">Org: Tata Consultancy Services Ltd.</div>
+                          <div className="font-semibold text-slate-800">Mihir Kumar (Tezpur Legal Cell)</div>
+                          <div className="text-[10px] text-slate-500">Org: Tezpur University Legal Cell</div>
                         </div>
                         <ArrowRight className="w-3.5 h-3.5 text-purple-600" />
                       </button>
@@ -413,10 +428,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
+                    disabled={isSubmitting}
+                    className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-60 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer mt-2"
                   >
                     <KeyRound className="w-4 h-4" />
-                    <span>Create Account & Register (FR-1.1)</span>
+                    <span>{isSubmitting ? 'Creating Account...' : 'Create Account & Register (FR-1.1)'}</span>
                   </button>
                 </form>
               )}
