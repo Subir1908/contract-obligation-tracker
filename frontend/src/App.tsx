@@ -19,7 +19,7 @@ import type {
   UserAccount,
   StoredContractRecord,
 } from './types/obligation';
-import { getTodayIsoString } from './utils/dateUtils';
+import { getTodayIsoString, USD_TO_INR_RATE, normalizeDateString } from './utils/dateUtils';
 import {
   exportToCsv,
   exportToExcel,
@@ -35,6 +35,7 @@ import {
   createObligationOnBackend,
   updateObligationOnBackend,
   deleteObligationOnBackend,
+  deleteContractOnBackend,
 } from './services/api';
 import { ShieldCheck, Lock } from 'lucide-react';
 
@@ -162,31 +163,96 @@ export function App() {
   });
 }, [addToast]);
 
+  const handleDeleteContract = useCallback(async (contractId: string, contractName: string) => {
+    const confirmed = window.confirm(`Are you sure you want to delete contract "${contractName}" and all its extracted obligations? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    try {
+      await deleteContractOnBackend(contractId);
+    } catch (err) {
+      console.warn('Backend contract delete warning:', err);
+    }
+
+    // Update local state
+    setTenantContracts(prev => {
+      const remaining = prev.filter(c => c.contractId !== contractId);
+      if (activeContractId === contractId) {
+        if (remaining.length > 0) {
+          const nextContract = remaining[0];
+          setActiveContractId(nextContract.contractId);
+          setMetadata(nextContract.metadata);
+          setObligations(nextContract.obligations);
+        } else {
+          setActiveContractId('');
+          setMetadata(EMPTY_METADATA);
+          setObligations([]);
+        }
+      }
+      return remaining;
+    });
+
+    addToast({
+      type: 'success',
+      title: 'Contract Deleted',
+      message: `"${contractName}" has been successfully deleted.`,
+    });
+  }, [activeContractId, addToast]);
+
   const handleCurrencyChange = useCallback((newCurrency: CurrencyCode) => {
     setCurrency(newCurrency);
+    if (newCurrency === 'USD') {
+      setConversionMultiplier(1 / USD_TO_INR_RATE);
+    } else {
+      setConversionMultiplier(1);
+    }
     addToast({
       type: 'info',
       title: `Currency Switched: ${newCurrency === 'INR' ? 'Indian Rupees (₹)' : 'US Dollars ($)'}`,
       message: newCurrency === 'INR'
         ? 'Formatted with Indian numbering standard (₹, Lakhs & Crores).'
-        : 'Formatted with US Dollar standard ($).',
+        : `Converted at $1 = ₹${USD_TO_INR_RATE}.`,
       duration: 3500,
     });
   }, [addToast]);
 
   const handleUpdateObligation = useCallback((id: string, updates: Partial<ContractObligation>) => {
-    setObligations(prev => prev.map(item => (item.id === id ? { ...item, ...updates } : item)));
+    // Optimistically update frontend state
+    setObligations(prev => {
+      const next = prev.map(item => {
+        if (item.id !== id) return item;
+        return { ...item, ...updates };
+      });
 
+      // Also keep tenantContracts synchronized so switching contracts retains edits
+      setTenantContracts(currList => currList.map(c => {
+        if (c.contractId !== activeContractId) return c;
+        return {
+          ...c,
+          obligations: c.obligations.map(ob => ob.id === id ? { ...ob, ...updates } : ob),
+        };
+      }));
+
+      return next;
+    });
+
+    // Sync to backend if valid ID
     if (/^(ob-)?\d+$/i.test(id)) {
-      updateObligationOnBackend(id, updates).catch(err => {
-        addToast({
-          type: 'warning',
-          title: 'Backend Sync Failed',
-          message: err instanceof Error ? err.message : 'Could not sync row update to server.',
-        });
+      const syncPayload = { ...updates };
+      if (syncPayload.dueDate !== undefined && syncPayload.dueDate !== '') {
+        const normalized = normalizeDateString(syncPayload.dueDate);
+        if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+          syncPayload.dueDate = normalized;
+        } else {
+          // Wait until a complete valid date is entered before sending to backend
+          return;
+        }
+      }
+
+      updateObligationOnBackend(id, syncPayload).catch(err => {
+        console.warn('Backend sync warning:', err);
       });
     }
-  }, [addToast]);
+  }, [activeContractId]);
 
   const handleDeleteObligation = useCallback((id: string) => {
     setObligations(prev => {
@@ -453,6 +519,7 @@ export function App() {
               contracts={tenantContracts}
               activeContractId={activeContractId}
               onSelectContract={handleSelectTenantContract}
+              onDeleteContract={handleDeleteContract}
               onOpenAuth={() => setIsAuthModalOpen(true)}
             />
 

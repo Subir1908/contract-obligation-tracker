@@ -33,7 +33,7 @@
   background: #94a3b8;
 }
 
-/* Print Optimization Styles (FR-5.3) */
+/* Print Optimization Styles */
 @media print {
   body {
     background: #ffffff !important;

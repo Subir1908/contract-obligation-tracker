@@ -145,6 +145,36 @@ def get_contract_details(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found.")
     return contract
 
+@router.delete("/{contract_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_contract(
+    contract_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a contract and its associated obligations.
+    """
+    contract = db.query(Contract).filter(
+        Contract.contract_id == contract_id,
+        Contract.user_id == current_user.user_id
+    ).first()
+    if not contract:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contract not found.")
+
+    # Delete obligations linked to contract
+    db.query(Obligation).filter(Obligation.contract_id == contract_id).delete()
+
+    # Clean up file on disk if exists
+    if contract.file_path and os.path.exists(contract.file_path):
+        try:
+            os.remove(contract.file_path)
+        except Exception:
+            pass
+
+    db.delete(contract)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 @router.get("/{contract_id}/preview")
 def preview_contract(
     contract_id: int,

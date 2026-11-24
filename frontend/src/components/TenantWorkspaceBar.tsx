@@ -2,7 +2,8 @@ import React from 'react';
 import { 
   Building2, 
   FileText, 
-  Layers
+  Layers,
+  Trash2
 } from 'lucide-react';
 import type { UserAccount, StoredContractRecord } from '../types/auth';
 
@@ -11,6 +12,7 @@ interface TenantWorkspaceBarProps {
   contracts: StoredContractRecord[];
   activeContractId: string;
   onSelectContract: (contract: StoredContractRecord) => void;
+  onDeleteContract?: (contractId: string, contractName: string) => void;
   onOpenAuth: () => void;
 }
 
@@ -19,6 +21,7 @@ export const TenantWorkspaceBar: React.FC<TenantWorkspaceBarProps> = ({
   contracts,
   activeContractId,
   onSelectContract,
+  onDeleteContract,
   onOpenAuth,
 }) => {
   return (
@@ -32,7 +35,7 @@ export const TenantWorkspaceBar: React.FC<TenantWorkspaceBarProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
-              FR-1.3 Isolated Tenant Workspace
+              Workspace
             </span>
             <span className="text-xs text-slate-400 font-mono">
               {currentUser ? `Token: Active` : `Guest Mode`}
@@ -51,7 +54,7 @@ export const TenantWorkspaceBar: React.FC<TenantWorkspaceBarProps> = ({
         </div>
       </div>
 
-      {/* Tenant Isolated Contracts Selector (FR-1.3) */}
+      {/* Tenant Isolated Contracts Selector */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
         <span className="text-xs text-slate-500 whitespace-nowrap font-medium flex items-center gap-1">
           <Layers className="w-3.5 h-3.5 text-slate-400" />
@@ -62,25 +65,46 @@ export const TenantWorkspaceBar: React.FC<TenantWorkspaceBarProps> = ({
           {contracts.map((c) => {
             const isActive = c.contractId === activeContractId;
             return (
-              <button
+              <div
                 key={c.contractId}
-                type="button"
-                onClick={() => onSelectContract(c)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer border ${
+                className={`group inline-flex items-center rounded-xl transition-all border ${
                   isActive
                     ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
                     : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
                 }`}
-                title={`Contract ID: ${c.contractId} (${c.obligations.length} extracted obligations)`}
               >
-                <FileText className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
-                <span className="max-w-[140px] truncate">{c.fileName}</span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                  isActive ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-200 text-slate-700'
-                }`}>
-                  {c.obligations.length}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectContract(c)}
+                  className="px-3 py-1.5 text-xs font-semibold whitespace-nowrap flex items-center gap-1.5 cursor-pointer"
+                  title={`Contract ID: ${c.contractId} (${c.obligations.length} extracted obligations)`}
+                >
+                  <FileText className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                  <span className="max-w-[130px] truncate">{c.fileName}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                    isActive ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-200 text-slate-700'
+                  }`}>
+                    {c.obligations.length}
+                  </span>
+                </button>
+                {onDeleteContract && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteContract(c.contractId, c.fileName);
+                    }}
+                    className={`pr-2 pl-0.5 py-1.5 text-xs transition-colors cursor-pointer ${
+                      isActive 
+                        ? 'text-indigo-200 hover:text-white hover:bg-indigo-700/60 rounded-r-xl' 
+                        : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-r-xl'
+                    }`}
+                    title={`Delete contract ${c.fileName}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>

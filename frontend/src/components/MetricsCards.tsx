@@ -107,7 +107,7 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
           </div>
         </div>
 
-        {/* Overdue Milestones (FR-5) */}
+        {/* Overdue Milestones  */}
         <div
           onClick={() => onSelectFilter('OVERDUE')}
           className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
@@ -133,7 +133,7 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
           </div>
         </div>
 
-        {/* Due Today (FR-5) */}
+        {/* Due Today  */}
         <div
           onClick={() => onSelectFilter('DUE_TODAY')}
           className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
@@ -159,7 +159,7 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
           </div>
         </div>
 
-        {/* FR-7: High Risk Severity Scoring */}
+        {/* : High Risk Severity Scoring */}
         <div
           onClick={() => onSelectRiskFilter && onSelectRiskFilter(activeRiskFilter === 'HIGH' ? 'ALL' : 'HIGH')}
           className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
@@ -173,7 +173,7 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-semibold text-purple-900 uppercase tracking-wider">High Risk</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-200 text-purple-800 font-bold">FR-7</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-200 text-purple-800 font-bold"></span>
             </div>
             <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
               <ShieldAlert className="w-4 h-4" />
@@ -190,9 +190,9 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
 
       </div>
 
-      {/* Quick-Filter Shortcuts (FR-5.3 & FR-7.2) */}
+      {/* Quick-Filter Shortcuts */}
       <div className="flex items-center gap-2 flex-wrap pt-1 text-xs">
-        <span className="text-slate-500 font-medium text-[11px] mr-1">Quick Filters (FR-5.3):</span>
+        <span className="text-slate-500 font-medium text-[11px] mr-1">Quick Filters :</span>
         
         <button
           type="button"
@@ -239,7 +239,7 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
           }`}
         >
           <Flame className="w-3.5 h-3.5" />
-          <span>Show High-Risk Exposure (FR-7.2)</span>
+          <span>Show High-Risk Exposure </span>
         </button>
 
         {(activeStatusFilter !== 'ALL' || activeRiskFilter !== 'ALL') && (
