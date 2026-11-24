@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
                   COT v1.0
                 </span>
                 
-                {/* User Session Status (FR-1) */}
+                {/* User Session Status  */}
                 <button
                   type="button"
                   onClick={onOpenAuthModal}
@@ -99,7 +99,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Action Toolbar */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
             
-            {/* Toggle Source Document Preview (FR-2.4) */}
+            {/* Toggle Source Document Preview  */}
             <button
               type="button"
               onClick={onTogglePreviewPane}
@@ -147,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
               </div>
             </div>
 
-            {/* Reference Date Control (FR-5 Baseline) */}
+            {/* Reference Date Control  */}
             <div className="relative">
               <button
                 type="button"
@@ -243,7 +243,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <CalendarDays className="w-4 h-4 text-indigo-600" />
                     <div>
                       <div className="font-semibold">Sync to Calendar (.ics)</div>
-                      <div className="text-[10px] text-slate-400">FR-6.4: Google & Outlook import</div>
+                      <div className="text-[10px] text-slate-400">: Google & Outlook import</div>
                     </div>
                   </button>
 
@@ -260,7 +260,7 @@ export const Header: React.FC<HeaderProps> = ({
                     <Printer className="w-4 h-4 text-slate-600" />
                     <div>
                       <div className="font-semibold">Print Summary Report</div>
-                      <div className="text-[10px] text-slate-400">FR-6.3: Clean print-ready PDF view</div>
+                      <div className="text-[10px] text-slate-400">: Clean print-ready PDF view</div>
                     </div>
                   </button>
                 </div>

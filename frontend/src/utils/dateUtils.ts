@@ -22,6 +22,20 @@ export function normalizeDateString(dateInput: string): string {
   if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
     return trimmed;
   }
+
+  // DD/MM/YYYY or DD-MM-YYYY (e.g. 25/12/2026 or 25-12-2026)
+  const dmyMatch = trimmed.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (dmyMatch) {
+    const p1 = parseInt(dmyMatch[1], 10);
+    const p2 = parseInt(dmyMatch[2], 10);
+    const year = dmyMatch[3];
+    // If p1 > 12, p1 is definitely day and p2 is month
+    if (p1 > 12 && p2 <= 12) {
+      return `${year}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+    }
+    // Default standard for DD/MM/YYYY
+    return `${year}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`;
+  }
   
   const parsed = new Date(trimmed);
   if (!isNaN(parsed.getTime())) {
@@ -128,13 +142,15 @@ export function formatDateDisplay(dateStr: string): string {
  * - INR: "₹1,50,000" using Indian numbering format (Lakhs/Crores grouping)
  * - USD: "$150,000.00" using US format
  */
+export const USD_TO_INR_RATE = 86.5;
+
 export function formatCurrency(
   value: number, 
   currency: CurrencyCode = 'INR', 
   multiplier: number = 1
 ): string {
   const computedValue = (value || 0) * multiplier;
-  if (isNaN(computedValue)) return currency === 'INR' ? '₹0' : '$0.00';
+  if (isNaN(computedValue)) return currency === 'INR' ? '₹0' : '.00';
 
   if (currency === 'INR') {
     return new Intl.NumberFormat('en-IN', {
@@ -150,6 +166,14 @@ export function formatCurrency(
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(computedValue);
+}
+
+export function convertUsdToInr(usdAmount: number, rate: number = USD_TO_INR_RATE): number {
+  return (usdAmount || 0) * rate;
+}
+
+export function convertInrToUsd(inrAmount: number, rate: number = USD_TO_INR_RATE): number {
+  return rate > 0 ? (inrAmount || 0) / rate : 0;
 }
 
 /**

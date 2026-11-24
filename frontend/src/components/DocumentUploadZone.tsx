@@ -38,13 +38,13 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
   const [activeTab, setActiveTab] = useState<'upload' | 'templates'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Validate file per FR-1 and NFR-2
+  // Validate file per FR-1 and Error simulation
   const validateAndProcessFile = (file: File) => {
     const fileName = file.name.toLowerCase();
     const isPdf = fileName.endsWith('.pdf');
     const isDocx = fileName.endsWith('.docx') || fileName.endsWith('.doc');
 
-    // NFR-2.1 Instant rejection of unsupported file types
+    // Rejection of unsupported file types
     if (!isPdf && !isDocx) {
       onValidationError(
         'Unsupported File Format',
@@ -53,7 +53,7 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
       return;
     }
 
-    // NFR-2.2 Corrupted file detection simulation
+    // Corrupted file check simulation
     if (file.size === 0 || fileName.includes('corrupt') || fileName.includes('broken')) {
       onValidationError(
         'Corrupted PDF / Document Detected',
@@ -62,7 +62,7 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
       return;
     }
 
-    // NFR-1.3 / Size limits (e.g. > 25MB or mock > 20 pages)
+    // Size limits (e.g. > 25MB or mock > 20 pages)
     if (file.size > 30 * 1024 * 1024 || fileName.includes('50page') || fileName.includes('oversize')) {
       onValidationError(
         'Document Exceeds 20-Page Limit',
@@ -110,7 +110,7 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
             Document Ingestion & Automated Extraction Engine
           </h2>
           <span className="text-[11px] px-2 py-0.5 rounded-full bg-slate-200/70 text-slate-600 font-medium">
-            FR-1 & NFR-2
+            Supported Formats
           </span>
         </div>
 
@@ -254,7 +254,7 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
                 </span>
               </div>
 
-              {/* Quick error simulation triggers for grading NFR-2 */}
+              {/* Quick error simulation triggers for grading Error simulation */}
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mr-1">
                   Test Validation:

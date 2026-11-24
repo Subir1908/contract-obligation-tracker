@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { 
   Search, 
   ArrowUpDown, 
@@ -21,7 +21,7 @@ import {
   Check 
 } from 'lucide-react';
 import type { ContractObligation, TimelineStatus, CurrencyCode, RiskLevel } from '../types/obligation';
-import { calculateUrgency, calculateRisk, formatCurrency, formatDateDisplay, formatIndianCompactNotation } from '../utils/dateUtils';
+import { calculateUrgency, calculateRisk, formatCurrency, formatDateDisplay, formatIndianCompactNotation, normalizeDateString } from '../utils/dateUtils';
 
 interface ObligationsTableProps {
   obligations: ContractObligation[];
@@ -39,6 +39,79 @@ interface ObligationsTableProps {
   conversionMultiplier?: number;
   onSelectClauseSnippet?: (id: string) => void;
 }
+
+interface DateCellProps {
+  id: string;
+  dueDate: string | null | undefined;
+  onUpdate: (id: string, updates: Partial<ContractObligation>) => void;
+}
+
+const DateCell: React.FC<DateCellProps> = ({ id, dueDate, onUpdate }) => {
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCalendarClick = () => {
+    if (dateInputRef.current) {
+      if (typeof dateInputRef.current.showPicker === 'function') {
+        try {
+          dateInputRef.current.showPicker();
+          return;
+        } catch {
+          // fallback
+        }
+      }
+      dateInputRef.current.focus();
+      dateInputRef.current.click();
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1 min-w-[145px]">
+      <div className="relative flex items-center bg-slate-50 hover:bg-white focus-within:bg-white rounded-lg border border-slate-200 hover:border-slate-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+        <input
+          type="text"
+          value={dueDate || ''}
+          placeholder="YYYY-MM-DD"
+          onChange={(e) => {
+            onUpdate(id, { dueDate: e.target.value });
+          }}
+          onBlur={(e) => {
+            const raw = e.target.value.trim();
+            if (!raw) return;
+            const normalized = normalizeDateString(raw);
+            if (normalized && normalized !== raw) {
+              onUpdate(id, { dueDate: normalized });
+            }
+          }}
+          className="text-xs font-mono font-medium text-slate-800 bg-transparent pl-2 pr-7 py-1.5 w-full focus:outline-hidden"
+          title="Type date manually (YYYY-MM-DD or DD/MM/YYYY) or click calendar icon"
+        />
+        <button
+          type="button"
+          onClick={handleCalendarClick}
+          className="absolute right-1 text-slate-400 hover:text-blue-600 p-1 cursor-pointer transition-colors"
+          title="Open Calendar Picker"
+        >
+          <CalendarIcon className="w-3.5 h-3.5" />
+        </button>
+        <input
+          ref={dateInputRef}
+          type="date"
+          value={dueDate && /^\d{4}-\d{2}-\d{2}$/.test(dueDate) ? dueDate : ''}
+          onChange={(e) => {
+            if (e.target.value) {
+              onUpdate(id, { dueDate: e.target.value });
+            }
+          }}
+          className="absolute opacity-0 pointer-events-none w-0 h-0 bottom-0 right-0"
+          tabIndex={-1}
+        />
+      </div>
+      <span className="text-[10px] text-slate-400 px-1 font-mono">
+        {formatDateDisplay(dueDate || '')}
+      </span>
+    </div>
+  );
+};
 
 export const ObligationsTable: React.FC<ObligationsTableProps> = ({
   obligations,
@@ -85,7 +158,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
   const filteredObligations = useMemo(() => {
     let result = [...obligations];
 
-    // 1. Status Filter (FR-5.3)
+    // 1. Status Filter 
     if (activeStatusFilter !== 'ALL') {
       result = result.filter(ob => {
         const urgency = calculateUrgency(ob.dueDate, referenceDate);
@@ -93,7 +166,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
       });
     }
 
-    // 2. Risk Filter (FR-7.2)
+    // 2. Risk Filter 
     if (activeRiskFilter !== 'ALL') {
       result = result.filter(ob => {
         const urgency = calculateUrgency(ob.dueDate, referenceDate);
@@ -173,7 +246,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
   return (
     <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
       
-      {/* TABLE TOOLBAR & CONTROLS (FR-4) */}
+      {/* TABLE TOOLBAR & CONTROLS */}
       <div className="p-4 sm:p-5 border-b border-slate-200/80 space-y-3.5 no-print">
         
         {/* Row 1: Search, Filter Tabs & Add Button */}
@@ -251,7 +324,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
             </button>
           </div>
 
-          {/* Add New Obligation Action (FR-4.3) */}
+          {/* Add New Obligation Action */}
           <div className="flex items-center gap-2 self-end lg:self-auto">
             <button
               type="button"
@@ -264,7 +337,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
           </div>
         </div>
 
-        {/* Row 2: Search Input & Party Filter & Sort Controls (FR-4.4) */}
+        {/* Row 2: Search Input & Party Filter & Sort Controls */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
           
           {/* Search Box */}
@@ -399,7 +472,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
               </th>
 
               <th className="py-3 px-3 min-w-[145px]">
-                <span>Timeline Status (FR-5)</span>
+                <span>Timeline Status</span>
               </th>
 
               <th className="py-3 px-3 min-w-[130px]">
@@ -409,7 +482,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                   className="flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
                 >
                   <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Risk (FR-7)</span>
+                  <span>Risk Severity</span>
                   <ArrowUpDown className="w-3 h-3 opacity-50" />
                 </button>
               </th>
@@ -541,7 +614,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                             {ob.id}
                           </span>
                           
-                          {/* FR-4.2 Verification Checkbox */}
+                          {/* Verification Checkbox */}
                           <button
                             type="button"
                             onClick={() => onUpdateObligation(ob.id, { 
@@ -552,7 +625,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                                 ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                             }`}
-                            title="Toggle Human Verification Status (FR-4.2)"
+                            title="Toggle Human Verification Status"
                           >
                             <Check className={`w-3 h-3 ${ob.verificationStatus === 'VERIFIED' ? 'text-emerald-600' : 'text-slate-400'}`} />
                             <span>{ob.verificationStatus || 'VERIFIED'}</span>
@@ -572,22 +645,16 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                       />
                     </td>
 
-                    {/* Milestone / Due Date (Normalized YYYY-MM-DD Date Picker - FR-3.2) */}
+                    {/* Milestone / Due Date */}
                     <td className="py-2.5 px-3">
-                      <div className="flex flex-col gap-1">
-                        <input
-                          type="date"
-                          value={ob.dueDate}
-                          onChange={(e) => onUpdateObligation(ob.id, { dueDate: e.target.value })}
-                          className="text-xs font-mono font-medium text-slate-800 bg-slate-50 hover:bg-white focus:bg-white px-2 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden transition-all w-full"
-                        />
-                        <span className="text-[10px] text-slate-400 px-1 font-mono">
-                          {formatDateDisplay(ob.dueDate)}
-                        </span>
-                      </div>
+                      <DateCell
+                        id={ob.id}
+                        dueDate={ob.dueDate}
+                        onUpdate={onUpdateObligation}
+                      />
                     </td>
 
-                    {/* Dynamic Urgency Status Badge (FR-5.1 & FR-5.2) */}
+                    {/* Dynamic Urgency Status Badge  */}
                     <td className="py-2.5 px-3">
                       <div className="flex flex-col gap-1 items-start">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border shadow-2xs ${badgeClass}`}>
@@ -606,7 +673,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* FR-7: Risk Severity Level Scoring */}
+                    {/* Risk Severity Level Scoring */}
                     <td className="py-2.5 px-3">
                       <div className="flex flex-col gap-1 items-start">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border ${riskBadgeClass}`}>
@@ -654,7 +721,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Late Penalty Clause & FR-3.3 Verbatim Snippet */}
+                    {/* Late Penalty Clause & Verbatim Snippet */}
                     <td className="py-2.5 px-3">
                       <div className="space-y-1">
                         <textarea
@@ -677,7 +744,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Actions (FR-4.2) */}
+                    {/* Actions */}
                     <td className="py-2.5 px-3 text-right no-print">
                       <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
                         <button

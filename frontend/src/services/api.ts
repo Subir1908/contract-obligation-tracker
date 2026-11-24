@@ -389,3 +389,15 @@ export async function downloadBackendExport(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
+
+export async function deleteContractOnBackend(contractId: string | number): Promise<void> {
+  const numericId = String(contractId).replace(/^ctr-/i, '');
+  const res = await fetch(`${API_BASE_URL}/api/contracts/${numericId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+
+  if (!res.ok && res.status !== 204) {
+    throw new Error(await parseErrorDetail(res, 'Failed to delete contract'));
+  }
+}

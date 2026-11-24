@@ -61,7 +61,7 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
             <div>
               <span className="font-bold text-slate-800">Source Document & Verbatim Clause Viewer</span>
               <span className="text-[11px] text-slate-500 font-normal ml-2">
-                (FR-2.4 Side-by-Side Review • {metadata.fileName})
+                (Side-by-Side Review • {metadata.fileName})
               </span>
             </div>
           </div>
@@ -88,7 +88,7 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
                 Source Document Preview & Verbatim Clauses
               </h3>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">
-                FR-2.4 & FR-3.3
+                
               </span>
             </div>
             <p className="text-[11px] text-slate-500">
@@ -123,7 +123,7 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
 
       <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
         
-        {/* Left Column: Selectable Document Text (FR-2.4) */}
+        {/* Left Column: Selectable Document Text  */}
         <div className="lg:col-span-7 p-4 sm:p-5 max-h-[380px] overflow-y-auto font-mono text-[11px] text-slate-700 leading-relaxed bg-slate-50/50 select-text space-y-3">
           <div className="text-[11px] font-sans font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
             <span>Selectable OCR/Text Stream</span>
@@ -147,7 +147,7 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
           </div>
         </div>
 
-        {/* Right Column: Linked Verbatim Clauses for Human Verification (FR-3.3) */}
+        {/* Right Column: Linked Verbatim Clauses for Human Verification */}
         <div className="lg:col-span-5 p-4 sm:p-5 max-h-[380px] overflow-y-auto space-y-3 bg-white">
           <div className="flex items-center justify-between">
             <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
