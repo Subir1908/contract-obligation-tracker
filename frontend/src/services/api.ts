@@ -104,6 +104,7 @@ export async function loginWithBackend(
 
 export async function registerWithBackend(params: {
   email: string;
+  phone?: string;
   password: string;
   name: string;
   organization: string;
@@ -115,6 +116,7 @@ export async function registerWithBackend(params: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email: params.email.trim().toLowerCase(),
+        phone: params.phone?.trim() || undefined,
         password: params.password,
         name: params.name.trim(),
         organization: params.organization.trim(),
@@ -127,6 +129,93 @@ export async function registerWithBackend(params: {
     }
 
     return await loginWithBackend(params.email, params.password);
+  } catch {
+    return {
+      success: false,
+      error: `Cannot reach backend at ${API_BASE_URL}. Make sure FastAPI is running on port 8000.`,
+    };
+  }
+}
+
+export async function requestPasswordResetOtp(identifier: string): Promise<{
+  success: boolean;
+  message?: string;
+  maskedTarget?: string;
+  channel?: string;
+  demoOtp?: string;
+  error?: string;
+}> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password/request-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: identifier.trim() }),
+    });
+    if (!res.ok) {
+      return { success: false, error: await parseErrorDetail(res, 'Failed to send OTP') };
+    }
+    const data = await res.json();
+    return {
+      success: true,
+      message: data.message,
+      maskedTarget: data.maskedTarget,
+      channel: data.channel,
+      demoOtp: data.demoOtp,
+    };
+  } catch {
+    return {
+      success: false,
+      error: `Cannot reach backend at ${API_BASE_URL}. Make sure FastAPI is running on port 8000.`,
+    };
+  }
+}
+
+export async function verifyPasswordResetOtp(params: {
+  identifier: string;
+  otp: string;
+}): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password/verify-otp`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identifier: params.identifier.trim(),
+        otp: params.otp.trim(),
+      }),
+    });
+    if (!res.ok) {
+      return { success: false, error: await parseErrorDetail(res, 'OTP verification failed') };
+    }
+    const data = await res.json();
+    return { success: true, message: data.message };
+  } catch {
+    return {
+      success: false,
+      error: `Cannot reach backend at ${API_BASE_URL}. Make sure FastAPI is running.`,
+    };
+  }
+}
+
+export async function resetPasswordWithOtp(params: {
+  identifier: string;
+  otp: string;
+  newPassword: string;
+}): Promise<{ success: boolean; message?: string; error?: string }> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password/reset`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identifier: params.identifier.trim(),
+        otp: params.otp.trim(),
+        new_password: params.newPassword,
+      }),
+    });
+    if (!res.ok) {
+      return { success: false, error: await parseErrorDetail(res, 'Failed to reset password') };
+    }
+    const data = await res.json();
+    return { success: true, message: data.message };
   } catch {
     return {
       success: false,
@@ -176,7 +265,7 @@ function mapBackendContract(
 
   const metadata: DocumentMetadata = {
     fileName,
-    fileSize: 'Backend File',
+    fileSize: fileType,
     pageCount,
     uploadedAt: uploadDate,
     contractTitle: fileName.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' '),

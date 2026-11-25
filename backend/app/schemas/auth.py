@@ -7,6 +7,7 @@ class UserRegister(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     email: str = Field(..., pattern=r"^[\w\.-]+@[\w\.-]+\.\w+$", description="User email address")
+    phone: Optional[str] = Field(None, description="Optional phone number for OTP recovery")
     password: str = Field(..., min_length=4, description="User password (min 4 chars)")
     name: Optional[str] = "User"
     organization: Optional[str] = "Tezpur University Legal Cell"
@@ -16,6 +17,20 @@ class UserLogin(BaseModel):
     email: str
     password: str
 
+class ForgotPasswordOtpRequest(BaseModel):
+    identifier: str = Field(..., min_length=3, description="Registered email address or phone number")
+
+class ForgotPasswordVerifyOtpRequest(BaseModel):
+    identifier: str = Field(..., min_length=3, description="Registered email address or phone number")
+    otp: str = Field(..., min_length=4, max_length=8, description="6-digit OTP code")
+
+class ForgotPasswordResetRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    identifier: str = Field(..., min_length=3, description="Registered email address or phone number")
+    otp: str = Field(..., min_length=4, max_length=8, description="6-digit OTP code")
+    new_password: str = Field(..., min_length=4, description="New password (min 4 chars)")
+
 class Token(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
@@ -23,6 +38,7 @@ class Token(BaseModel):
     token_type: str = "bearer"
     user_id: Optional[str] = None
     email: Optional[str] = None
+    phone: Optional[str] = None
     name: Optional[str] = None
     organization: Optional[str] = None
     role: Optional[str] = None
@@ -33,6 +49,7 @@ class UserResponse(BaseModel):
 
     user_id: int
     email: str
+    phone: Optional[str] = None
     name: Optional[str] = ""
     organization: Optional[str] = "Tezpur University Legal Cell"
     role: Optional[str] = "ADMIN_LEGAL_OFFICER"

@@ -8,6 +8,7 @@ class User(Base):
 
     user_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
+    phone = Column(String(30), nullable=True, index=True)
     password_hash = Column(String(255), nullable=False)
     name = Column(String(255), nullable=True, default="")
     organization = Column(String(255), nullable=False, default="Tezpur University Legal Cell", index=True)
