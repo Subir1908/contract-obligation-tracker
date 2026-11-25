@@ -592,7 +592,6 @@ export function App() {
               onDeleteObligation={handleDeleteObligation}
               onDuplicateObligation={handleDuplicateObligation}
               onAddObligation={handleAddObligation}
-              onLoadDemoContract={handleLoadDemoContract}
               currency={currency}
               conversionMultiplier={conversionMultiplier}
               onSelectClauseSnippet={(id) => {

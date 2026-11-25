@@ -16,7 +16,6 @@ import {
   X, 
   ChevronUp, 
   ChevronDown, 
-  Sparkles, 
   IndianRupee, 
   Check 
 } from 'lucide-react';
@@ -34,7 +33,6 @@ interface ObligationsTableProps {
   onDeleteObligation: (id: string) => void;
   onDuplicateObligation: (id: string) => void;
   onAddObligation: () => void;
-  onLoadDemoContract: () => void;
   currency?: CurrencyCode;
   conversionMultiplier?: number;
   onSelectClauseSnippet?: (id: string) => void;
@@ -124,7 +122,6 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
   onDeleteObligation,
   onDuplicateObligation,
   onAddObligation,
-  onLoadDemoContract,
   currency = 'INR',
   conversionMultiplier = 1,
   onSelectClauseSnippet,
@@ -529,7 +526,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                       No matching obligations found
                     </h4>
                     <p className="text-xs text-slate-500">
-                      Try clearing filters, searching different keywords, or load the preset demo contract to preview populated extraction tables.
+                      Upload a PDF or DOCX contract above to extract obligations, or adjust your search and filter criteria.
                     </p>
                     <div className="pt-2 flex items-center justify-center gap-2">
                       <button
@@ -543,14 +540,6 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                         className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
                       >
                         Clear Filters
-                      </button>
-                      <button
-                        type="button"
-                        onClick={onLoadDemoContract}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Sparkles className="w-3.5 h-3.5" />
-                        Load Demo Data
                       </button>
                     </div>
                   </div>
