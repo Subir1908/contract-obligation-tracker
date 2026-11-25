@@ -20,6 +20,7 @@ import type {
   StoredContractRecord,
 } from './types/obligation';
 import { getTodayIsoString, USD_TO_INR_RATE, normalizeDateString } from './utils/dateUtils';
+import { DEMO_CONTRACT_BUNDLES } from './data/mockContracts';
 import {
   exportToCsv,
   exportToExcel,
@@ -149,11 +150,13 @@ export function App() {
   setActiveRiskFilter('ALL');
   setActiveClauseId(null);
 
-  try {
-    const freshObs = await fetchContractObligations(contract.contractId);
-    setObligations(freshObs);
-  } catch {
-    // Keep obligations already loaded on the contract record
+  if (/^(ctr-)?\d+$/i.test(contract.contractId)) {
+    try {
+      const freshObs = await fetchContractObligations(contract.contractId);
+      setObligations(freshObs);
+    } catch {
+      // Keep obligations already loaded on the contract record
+    }
   }
 
   addToast({
@@ -408,8 +411,34 @@ export function App() {
     const matching = tenantContracts.find(c => c.contractId === bundleId);
     if (matching) {
       await handleSelectTenantContract(matching);
+      return;
     }
-  }, [tenantContracts, handleSelectTenantContract]);
+
+    const bundle = DEMO_CONTRACT_BUNDLES.find(b => b.id === bundleId);
+    if (!bundle) {
+      addToast({
+        type: 'error',
+        title: 'Preset Not Found',
+        message: `Could not locate preset agreement "${bundleId}".`,
+      });
+      return;
+    }
+
+    const demoObligations = bundle.getObligations(referenceDate);
+    setActiveContractId(bundle.id);
+    setMetadata(bundle.metadata);
+    setObligations(demoObligations);
+    setActiveStatusFilter('ALL');
+    setActiveRiskFilter('ALL');
+    setActiveClauseId(null);
+    setIsPreviewPaneOpen(true);
+
+    addToast({
+      type: 'success',
+      title: 'Preset Agreement Loaded',
+      message: `Loaded "${bundle.title}" with ${demoObligations.length} obligations.`,
+    });
+  }, [tenantContracts, handleSelectTenantContract, referenceDate, addToast]);
 
   const handleLoadDemoContract = useCallback(() => {
     if (tenantContracts.length > 0) {
@@ -465,8 +494,6 @@ export function App() {
         onConversionMultiplierChange={setConversionMultiplier}
         currentUser={currentUser}
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
-        isPreviewPaneOpen={isPreviewPaneOpen}
-        onTogglePreviewPane={() => setIsPreviewPaneOpen(!isPreviewPaneOpen)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">

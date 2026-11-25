@@ -1,11 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.core.config import settings
 from app.core.database import engine, Base
 import app.models # Ensure all models are registered
 
 # Create database tables automatically
 Base.metadata.create_all(bind=engine)
+
+# Ensure newly added columns exist on existing SQLite tables
+with engine.connect() as conn:
+    cols = [row[1] for row in conn.execute(text("PRAGMA table_info(users)")).fetchall()]
+    if "phone" not in cols:
+        conn.execute(text("ALTER TABLE users ADD COLUMN phone VARCHAR(30)"))
+        conn.commit()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

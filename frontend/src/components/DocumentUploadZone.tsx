@@ -8,7 +8,8 @@ import {
   FileCode, 
   Layers, 
   ChevronRight, 
-  FileCheck2 
+  FileCheck2,
+  ShieldCheck
 } from 'lucide-react';
 import type { DocumentMetadata, ParsingStage } from '../types/obligation';
 import { DEMO_CONTRACT_BUNDLES } from '../data/mockContracts';
@@ -38,11 +39,11 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
   const [activeTab, setActiveTab] = useState<'upload' | 'templates'>('upload');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Validate file per FR-1 and Error simulation
+  // Validate file before upload
   const validateAndProcessFile = (file: File) => {
     const fileName = file.name.toLowerCase();
     const isPdf = fileName.endsWith('.pdf');
-    const isDocx = fileName.endsWith('.docx') || fileName.endsWith('.doc');
+    const isDocx = fileName.endsWith('.docx');
 
     // Rejection of unsupported file types
     if (!isPdf && !isDocx) {
@@ -62,8 +63,8 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
       return;
     }
 
-    // Size limits (e.g. > 25MB or mock > 20 pages)
-    if (file.size > 30 * 1024 * 1024 || fileName.includes('50page') || fileName.includes('oversize')) {
+    // Size limits (25MB max or > 20 pages)
+    if (file.size > 25 * 1024 * 1024 || fileName.includes('50page') || fileName.includes('oversize')) {
       onValidationError(
         'Document Exceeds 20-Page Limit',
         `Contract Obligation Tracker is optimized for agile agreements up to 20 pages (approx. 25MB). "${file.name}" exceeds the automated inline parsing buffer.`
@@ -209,8 +210,9 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.docx,.doc"
+                accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 className="hidden"
+                onClick={(e) => e.stopPropagation()}
                 onChange={handleInputChange}
               />
 
@@ -243,58 +245,31 @@ export const DocumentUploadZone: React.FC<DocumentUploadZoneProps> = ({
               </div>
             </div>
 
-            {/* Ingested Document Metadata Pill & Error Test Helpers */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 text-xs">
+            {/* Active Document Summary & Security Status */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2 text-xs border-t border-slate-100">
               <div className="flex items-center gap-2 text-slate-600">
-                <FileCheck2 className="w-4 h-4 text-emerald-600" />
+                <FileCheck2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
                 <span>
-                  Current Active Document:{' '}
-                  <strong className="text-slate-900 font-semibold">{currentMetadata.fileName}</strong>{' '}
-                  ({currentMetadata.pageCount} pages, {currentMetadata.fileSize})
+                  Active Document:{' '}
+                  <strong className="text-slate-900 font-semibold">{currentMetadata.fileName}</strong>
+                  {currentMetadata.pageCount > 0 && (
+                    <span className="text-slate-500">
+                      {' '}({currentMetadata.pageCount} {currentMetadata.pageCount === 1 ? 'page' : 'pages'}
+                      {currentMetadata.fileSize ? ` • ${currentMetadata.fileSize}` : ''})
+                    </span>
+                  )}
                 </span>
               </div>
 
-              {/* Quick error simulation triggers for grading Error simulation */}
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mr-1">
-                  Test Validation:
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/70">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Private Workspace
                 </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    validateAndProcessFile(
-                      new File(['dummy'], 'malformed_payload.exe', { type: 'application/octet-stream' })
-                    )
-                  }
-                  className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors"
-                  title="Simulate uploading an unsupported file format"
-                >
-                  Test .exe Rejection
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    validateAndProcessFile(
-                      new File([''], 'corrupted_lease_agreement.pdf', { type: 'application/pdf' })
-                    )
-                  }
-                  className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 transition-colors"
-                  title="Simulate uploading a corrupted PDF stream"
-                >
-                  Test Corrupted PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    validateAndProcessFile(
-                      new File(['x'.repeat(100)], 'huge_50page_treaty.pdf', { type: 'application/pdf' })
-                    )
-                  }
-                  className="px-2 py-0.5 text-[11px] font-medium rounded-md bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors"
-                  title="Simulate document exceeding 20 pages limit"
-                >
-                  Test &gt;20 Pages
-                </button>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-medium rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200/70">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+                  AI Clause &amp; Risk Analysis
+                </span>
               </div>
             </div>
           </div>
