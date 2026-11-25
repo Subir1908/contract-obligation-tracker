@@ -6,7 +6,7 @@ import {
   Check, 
   ChevronRight, 
   Sparkles,
-  X
+  EyeOff
 } from 'lucide-react';
 import type { ContractObligation, DocumentMetadata } from '../types/obligation';
 
@@ -87,9 +87,6 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
               <h3 className="text-sm font-bold text-slate-900">
                 Source Document Preview & Verbatim Clauses
               </h3>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">
-                
-              </span>
             </div>
             <p className="text-[11px] text-slate-500">
               {metadata.fileName} • {metadata.pageCount} pages • {metadata.fileSize}
@@ -113,10 +110,11 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
           <button
             type="button"
             onClick={onToggle}
-            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer"
-            title="Collapse Preview Pane"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer whitespace-nowrap"
+            title="Hide Source Document Preview"
           >
-            <X className="w-4 h-4" />
+            <EyeOff className="w-3.5 h-3.5 text-blue-600" />
+            <span>Hide Preview</span>
           </button>
         </div>
       </div>

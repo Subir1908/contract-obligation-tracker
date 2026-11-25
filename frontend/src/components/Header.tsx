@@ -11,8 +11,7 @@ import {
   IndianRupee,
   CalendarDays,
   UserCheck,
-  Lock,
-  Eye
+  Lock
 } from 'lucide-react';
 import { formatDateDisplay } from '../utils/dateUtils';
 import type { CurrencyCode, UserAccount } from '../types/obligation';
@@ -33,8 +32,6 @@ interface HeaderProps {
   onConversionMultiplierChange: (mult: number) => void;
   currentUser: UserAccount | null;
   onOpenAuthModal: () => void;
-  isPreviewPaneOpen: boolean;
-  onTogglePreviewPane: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -49,8 +46,6 @@ export const Header: React.FC<HeaderProps> = ({
   onCurrencyChange,
   currentUser,
   onOpenAuthModal,
-  isPreviewPaneOpen,
-  onTogglePreviewPane,
 }) => {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showDateSelector, setShowDateSelector] = useState(false);
@@ -98,21 +93,6 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Action Toolbar */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-end">
-            
-            {/* Toggle Source Document Preview  */}
-            <button
-              type="button"
-              onClick={onTogglePreviewPane}
-              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg border transition-all cursor-pointer ${
-                isPreviewPaneOpen
-                  ? 'bg-blue-50 text-blue-700 border-blue-300 shadow-2xs'
-                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-              }`}
-              title="Toggle Side-by-side Document Preview & Verbatim Clause Viewer"
-            >
-              <Eye className="w-3.5 h-3.5 text-blue-600" />
-              <span>{isPreviewPaneOpen ? 'Hide Preview' : 'Doc Preview'}</span>
-            </button>
 
             {/* Currency Selector (INR ₹ / USD $) */}
             <div className="relative">
