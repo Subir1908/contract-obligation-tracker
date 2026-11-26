@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Sidebar, type WorkspaceSection } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MetricsCards } from './components/MetricsCards';
-import { AnalyticsOverview } from './components/AnalyticsOverview';
 import { DocumentUploadZone } from './components/DocumentUploadZone';
 import { ObligationsTable } from './components/ObligationsTable';
 import { DocumentPreviewPane } from './components/DocumentPreviewPane';
@@ -63,7 +62,6 @@ const SECTION_TITLES: Record<WorkspaceSection, string> = {
   dashboard: 'Dashboard',
   documents: 'Contracts & Source Preview',
   obligations: 'Obligations Ledger',
-  analytics: 'Exposure & Risk Analytics',
 };
 
 export function App() {
@@ -489,7 +487,7 @@ export function App() {
     triggerPrintReport();
   }, []);
 
-  const showAnalytics = activeSection === 'dashboard' || activeSection === 'analytics';
+  const showMetrics = activeSection === 'dashboard';
   const showDocuments = activeSection === 'dashboard' || activeSection === 'documents';
   const showObligations = activeSection === 'dashboard' || activeSection === 'obligations';
 
@@ -576,36 +574,17 @@ export function App() {
                 onOpenAuth={() => setIsAuthModalOpen(true)}
               />
 
-              {showAnalytics && (
-                <>
-                  <MetricsCards
-                    obligations={obligations}
-                    referenceDate={referenceDate}
-                    activeStatusFilter={activeStatusFilter}
-                    onSelectFilter={(status) => {
-                      setActiveStatusFilter(status);
-                      if (activeSection === 'analytics') {
-                        setActiveSection('obligations');
-                      }
-                    }}
-                    activeRiskFilter={activeRiskFilter}
-                    onSelectRiskFilter={(risk) => {
-                      setActiveRiskFilter(risk);
-                      if (activeSection === 'analytics') {
-                        setActiveSection('obligations');
-                      }
-                    }}
-                    currency={currency}
-                    conversionMultiplier={conversionMultiplier}
-                  />
-
-                  <AnalyticsOverview
-                    obligations={obligations}
-                    referenceDate={referenceDate}
-                    currency={currency}
-                    conversionMultiplier={conversionMultiplier}
-                  />
-                </>
+              {showMetrics && (
+                <MetricsCards
+                  obligations={obligations}
+                  referenceDate={referenceDate}
+                  activeStatusFilter={activeStatusFilter}
+                  onSelectFilter={setActiveStatusFilter}
+                  activeRiskFilter={activeRiskFilter}
+                  onSelectRiskFilter={setActiveRiskFilter}
+                  currency={currency}
+                  conversionMultiplier={conversionMultiplier}
+                />
               )}
 
               {showDocuments && (

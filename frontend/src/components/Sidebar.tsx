@@ -4,7 +4,6 @@ import {
   FileText,
   ListChecks,
   CalendarDays,
-  BarChart3,
   Search,
   PanelLeftClose,
   PanelLeftOpen,
@@ -14,7 +13,7 @@ import {
 } from 'lucide-react';
 import type { UserAccount } from '../types/auth';
 
-export type WorkspaceSection = 'dashboard' | 'documents' | 'obligations' | 'analytics';
+export type WorkspaceSection = 'dashboard' | 'documents' | 'obligations';
 
 interface SidebarProps {
   activeSection: WorkspaceSection;
@@ -95,15 +94,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       meta: obligationsCount > 0 ? obligationsCount : undefined,
       action: () => {
         onSelectSection('obligations');
-        onCloseMobile();
-      },
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: <BarChart3 className="w-4 h-4 stroke-[1.5]" />,
-      action: () => {
-        onSelectSection('analytics');
         onCloseMobile();
       },
     },
