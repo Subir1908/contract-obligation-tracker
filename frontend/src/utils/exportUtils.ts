@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { ContractObligation, DocumentMetadata, CurrencyCode } from '../types/obligation';
 import { calculateUrgency, formatCurrency } from './dateUtils';
+import { sanitizeIcsText, sanitizeSpreadsheetCell } from './sanitize';
 
 /**
  * Exports obligations to a standardized RFC 4180 CSV file with UTF-8 BOM
@@ -73,18 +74,18 @@ export function exportToExcel(
   const tableData = obligations.map(ob => {
     const urgency = calculateUrgency(ob.dueDate, referenceDate);
     return {
-      'Obligation ID': ob.id,
-      'Deliverable / Obligation Description': ob.description,
-      'Responsible Party': ob.responsibleParty,
-      'Milestone Due Date': ob.dueDate,
-      'Timeline Urgency': urgency.label,
-      'Urgency Details': urgency.formattedDelta,
-      'Risk Severity Level': ob.riskLevel || 'MEDIUM',
-      'Verification Status': ob.verificationStatus || 'VERIFIED',
+      'Obligation ID': sanitizeSpreadsheetCell(ob.id),
+      'Deliverable / Obligation Description': sanitizeSpreadsheetCell(ob.description),
+      'Responsible Party': sanitizeSpreadsheetCell(ob.responsibleParty),
+      'Milestone Due Date': sanitizeSpreadsheetCell(ob.dueDate),
+      'Timeline Urgency': sanitizeSpreadsheetCell(urgency.label),
+      'Urgency Details': sanitizeSpreadsheetCell(urgency.formattedDelta),
+      'Risk Severity Level': sanitizeSpreadsheetCell(ob.riskLevel || 'MEDIUM'),
+      'Verification Status': sanitizeSpreadsheetCell(ob.verificationStatus || 'VERIFIED'),
       [currencyCol]: Number(((ob.monetaryValue || 0) * conversionMultiplier).toFixed(2)),
-      'Late Penalty Clause': ob.latePenalty,
-      'Source Clause Snippet': ob.sourceClause || 'Extracted Clause',
-      'Category': ob.category || 'General'
+      'Late Penalty Clause': sanitizeSpreadsheetCell(ob.latePenalty),
+      'Source Clause Snippet': sanitizeSpreadsheetCell(ob.sourceClause || 'Extracted Clause'),
+      'Category': sanitizeSpreadsheetCell(ob.category || 'General')
     };
   });
 
@@ -162,8 +163,8 @@ export function exportToIcsCalendar(
     d.setDate(d.getDate() + 1);
     const endClean = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
 
-    const summary = `[COT] ${ob.responsibleParty ? ob.responsibleParty + ': ' : ''}${ob.description.slice(0, 70)}`;
-    const description = `Obligation: ${ob.description}\\nParty: ${ob.responsibleParty}\\nDue Date: ${ob.dueDate}\\nLate Penalty: ${ob.latePenalty || 'None'}\\nSource Clause: ${ob.sourceClause || 'Extracted via COT'}`;
+    const summary = sanitizeIcsText(`[COT] ${ob.responsibleParty ? ob.responsibleParty + ': ' : ''}${ob.description.slice(0, 70)}`);
+    const description = sanitizeIcsText(`Obligation: ${ob.description}\nParty: ${ob.responsibleParty}\nDue Date: ${ob.dueDate}\nLate Penalty: ${ob.latePenalty || 'None'}\nSource Clause: ${ob.sourceClause || 'Extracted via COT'}`);
 
     return [
       'BEGIN:VEVENT',
@@ -171,8 +172,8 @@ export function exportToIcsCalendar(
       `DTSTAMP:${dtStamp}`,
       `DTSTART;VALUE=DATE:${dateClean}`,
       `DTEND;VALUE=DATE:${endClean}`,
-      `SUMMARY:${summary.replace(/,/g, '\\,')}`,
-      `DESCRIPTION:${description.replace(/,/g, '\\,')}`,
+      `SUMMARY:${summary}`,
+      `DESCRIPTION:${description}`,
       'STATUS:CONFIRMED',
       'TRANSP:TRANSPARENT',
       'END:VEVENT'
@@ -185,7 +186,7 @@ export function exportToIcsCalendar(
     'PRODID:-//Contract Obligation Tracker//COT Calendar Generator//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    `X-WR-CALNAME:${contractTitle} Deadlines`,
+    `X-WR-CALNAME:${sanitizeIcsText(contractTitle)} Deadlines`,
     ...vEvents,
     'END:VCALENDAR'
   ].join('\r\n');
@@ -200,7 +201,8 @@ export function exportToIcsCalendar(
  */
 function escapeCsvField(val: string | number | undefined | null): string {
   if (val === null || val === undefined) return '""';
-  const str = String(val).replace(/"/g, '""');
+  const safe = typeof val === 'number' ? String(val) : sanitizeSpreadsheetCell(val);
+  const str = safe.replace(/"/g, '""');
   return `"${str}"`;
 }
 

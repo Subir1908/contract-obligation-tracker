@@ -25,6 +25,7 @@ import {
   verifyPasswordResetOtp,
   resetPasswordWithOtp,
 } from '../services/api';
+import { sanitizeOtp, sanitizePhone } from '../utils/sanitize';
 
 interface AuthModalProps {
   currentUser: UserAccount | null;
@@ -481,7 +482,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           type="tel"
                           autoComplete="tel"
                           value={regPhone}
-                          onChange={(e) => setRegPhone(e.target.value)}
+                          onChange={(e) => setRegPhone(sanitizePhone(e.target.value, false))}
                           placeholder="+91 9876543210"
                           className="w-full text-[13px] pl-9 pr-3 h-9 bg-[#141415] text-[#ededed] placeholder-[#52525b] border border-white/[0.08] rounded-lg focus:outline-none focus:border-white/30"
                         />
@@ -658,7 +659,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                           inputMode="numeric"
                           maxLength={6}
                           value={forgotOtp}
-                          onChange={(e) => setForgotOtp(e.target.value)}
+                          onChange={(e) => setForgotOtp(sanitizeOtp(e.target.value))}
                           placeholder="000000"
                           className="w-full text-[13px] font-mono tracking-widest px-3 h-9 bg-[#141415] text-[#ededed] placeholder-[#52525b] border border-white/[0.08] rounded-lg focus:outline-none focus:border-white/30 tabular-nums"
                           required

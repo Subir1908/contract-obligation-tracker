@@ -1,5 +1,6 @@
 import type { UserAccount, UserRole, StoredContractRecord } from '../types/auth';
 import type { ContractObligation, DocumentMetadata, RiskLevel, VerificationStatus } from '../types/obligation';
+import { sanitizeMonetaryValue, sanitizeOtp, sanitizePhone, sanitizeText } from '../utils/sanitize';
 
 export const API_BASE_URL =
   (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, '') ||
@@ -115,11 +116,11 @@ export async function registerWithBackend(params: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: params.email.trim().toLowerCase(),
-        phone: params.phone?.trim() || undefined,
+        email: sanitizeText(params.email, 255).toLowerCase(),
+        phone: params.phone ? sanitizePhone(params.phone) || undefined : undefined,
         password: params.password,
-        name: params.name.trim(),
-        organization: params.organization.trim(),
+        name: sanitizeText(params.name, 150),
+        organization: sanitizeText(params.organization, 200),
         role: params.role,
       }),
     });
@@ -149,7 +150,7 @@ export async function requestPasswordResetOtp(identifier: string): Promise<{
     const res = await fetch(`${API_BASE_URL}/api/auth/forgot-password/request-otp`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: identifier.trim() }),
+      body: JSON.stringify({ identifier: sanitizeText(identifier, 255) }),
     });
     if (!res.ok) {
       return { success: false, error: await parseErrorDetail(res, 'Failed to send OTP') };
@@ -179,8 +180,8 @@ export async function verifyPasswordResetOtp(params: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        identifier: params.identifier.trim(),
-        otp: params.otp.trim(),
+        identifier: sanitizeText(params.identifier, 255),
+        otp: sanitizeOtp(params.otp),
       }),
     });
     if (!res.ok) {
@@ -206,8 +207,8 @@ export async function resetPasswordWithOtp(params: {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        identifier: params.identifier.trim(),
-        otp: params.otp.trim(),
+        identifier: sanitizeText(params.identifier, 255),
+        otp: sanitizeOtp(params.otp),
         new_password: params.newPassword,
       }),
     });
@@ -392,13 +393,13 @@ export async function createObligationOnBackend(params: {
     headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       contract_id: numericContractId,
-      description: params.description,
-      responsible_party: params.responsibleParty,
+      description: sanitizeText(params.description, 2000),
+      responsible_party: sanitizeText(params.responsibleParty, 255),
       due_date: params.dueDate || null,
-      monetary_value: params.monetaryValue,
-      currency: params.currency || 'INR',
-      late_penalty: params.latePenalty,
-      source_clause: params.sourceClause || 'Manually added by user',
+      monetary_value: sanitizeMonetaryValue(params.monetaryValue),
+      currency: sanitizeText(params.currency || 'INR', 10),
+      late_penalty: sanitizeText(params.latePenalty, 1000),
+      source_clause: sanitizeText(params.sourceClause || 'Manually added by user', 4000),
     }),
   });
 
@@ -417,12 +418,12 @@ export async function updateObligationOnBackend(
   const numericId = obligationId.replace(/^ob-/i, '');
   const payload: Record<string, unknown> = {};
 
-  if (updates.description !== undefined) payload.description = updates.description;
-  if (updates.responsibleParty !== undefined) payload.responsible_party = updates.responsibleParty;
-  if (updates.dueDate !== undefined) payload.due_date = updates.dueDate || null;
-  if (updates.monetaryValue !== undefined) payload.monetary_value = updates.monetaryValue;
-  if (updates.latePenalty !== undefined) payload.late_penalty = updates.latePenalty;
-  if (updates.sourceClause !== undefined) payload.source_clause = updates.sourceClause;
+  if (updates.description !== undefined) payload.description = sanitizeText(updates.description, 2000);
+  if (updates.responsibleParty !== undefined) payload.responsible_party = sanitizeText(updates.responsibleParty, 255);
+  if (updates.dueDate !== undefined) payload.due_date = updates.dueDate ? sanitizeText(updates.dueDate, 20) : null;
+  if (updates.monetaryValue !== undefined) payload.monetary_value = sanitizeMonetaryValue(updates.monetaryValue);
+  if (updates.latePenalty !== undefined) payload.late_penalty = sanitizeText(updates.latePenalty, 1000);
+  if (updates.sourceClause !== undefined) payload.source_clause = sanitizeText(updates.sourceClause, 4000);
   if (updates.riskLevel !== undefined) payload.risk_level = updates.riskLevel;
   if (updates.verificationStatus !== undefined) {
     payload.verification_status = updates.verificationStatus;

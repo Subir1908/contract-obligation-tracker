@@ -21,6 +21,7 @@ import {
   formatIndianCompactNotation,
   normalizeDateString,
 } from '../utils/dateUtils';
+import { sanitizeMonetaryValue, sanitizeText } from '../utils/sanitize';
 
 interface ObligationsTableProps {
   obligations: ContractObligation[];
@@ -502,7 +503,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                         <textarea
                           rows={2}
                           value={ob.description}
-                          onChange={(e) => onUpdateObligation(ob.id, { description: e.target.value })}
+                          onChange={(e) => onUpdateObligation(ob.id, { description: sanitizeText(e.target.value, 2000, false) })}
                           placeholder="Obligation description"
                           className="w-full text-[13px] text-[#ededed] bg-transparent hover:bg-[#141415]/80 focus:bg-[#141415] px-2 py-1 rounded-md border border-transparent hover:border-white/[0.08] focus:border-white/25 focus:outline-none transition-colors resize-none leading-snug"
                         />
@@ -533,7 +534,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                       <input
                         type="text"
                         value={ob.responsibleParty}
-                        onChange={(e) => onUpdateObligation(ob.id, { responsibleParty: e.target.value })}
+                        onChange={(e) => onUpdateObligation(ob.id, { responsibleParty: sanitizeText(e.target.value, 255, false) })}
                         placeholder="Responsible party"
                         className="w-full text-[13px] font-medium text-[#ededed] bg-transparent hover:bg-[#141415]/80 focus:bg-[#141415] px-2 py-1.5 rounded-md border border-transparent hover:border-white/[0.08] focus:border-white/25 focus:outline-none transition-colors"
                       />
@@ -591,7 +592,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                             value={ob.monetaryValue || ''}
                             onChange={(e) =>
                               onUpdateObligation(ob.id, {
-                                monetaryValue: parseFloat(e.target.value) || 0,
+                                monetaryValue: sanitizeMonetaryValue(e.target.value),
                               })
                             }
                             placeholder="0"
@@ -615,7 +616,7 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                         <textarea
                           rows={2}
                           value={ob.latePenalty}
-                          onChange={(e) => onUpdateObligation(ob.id, { latePenalty: e.target.value })}
+                          onChange={(e) => onUpdateObligation(ob.id, { latePenalty: sanitizeText(e.target.value, 1000, false) })}
                           placeholder="Late penalty terms"
                           className="w-full text-[12px] text-[#a1a1a6] bg-transparent hover:bg-[#141415]/80 focus:bg-[#141415] focus:text-[#ededed] px-2 py-1 rounded-md border border-transparent hover:border-white/[0.08] focus:border-white/25 focus:outline-none transition-colors resize-none leading-snug"
                         />

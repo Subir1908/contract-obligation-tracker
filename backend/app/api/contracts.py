@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import shutil
 from typing import List, Optional
@@ -36,7 +37,8 @@ async def upload_contract(
     FR-3: Parse & extract the 5 core contract obligation fields.
     NFR-3: Isolated strictly to the authenticated user's workspace.
     """
-    original_filename = file.filename or "contract.pdf"
+    raw_filename = os.path.basename(file.filename or "contract.pdf")
+    original_filename = re.sub(r"[\x00-\x1f\x7f<>:\"/\\|?*]", "_", raw_filename).strip() or "contract.pdf"
     ext = os.path.splitext(original_filename)[1].lower()
     if ext not in [".pdf", ".docx"]:
         raise HTTPException(

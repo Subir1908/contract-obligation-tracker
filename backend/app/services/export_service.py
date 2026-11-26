@@ -1,10 +1,36 @@
 import csv
 import io
+import re
 from datetime import datetime, timezone
-from typing import List
+from typing import Any, List
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from app.models.obligation import Obligation
+
+_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _sanitize_spreadsheet_cell(val: Any) -> Any:
+    """Prevent CSV/Excel formula injection on string values."""
+    if val is None:
+        return ""
+    if isinstance(val, (int, float)):
+        return val
+    text = str(val).replace("\x00", "")
+    if text.startswith(_FORMULA_PREFIXES):
+        return f"'{text}"
+    return text
+
+
+def _escape_ics_text(val: str) -> str:
+    """Escape RFC 5545 special characters and strip control/newline injection."""
+    cleaned = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", val or "")
+    cleaned = cleaned.replace("\r\n", "\\n").replace("\n", "\\n").replace("\r", "\\n")
+    cleaned = cleaned.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,")
+    # Restore literal \n escapes after backslash escaping
+    cleaned = cleaned.replace("\\\\n", "\\n")
+    return cleaned
+
 
 def export_to_csv(obligations: List[Obligation]) -> str:
     """
@@ -12,8 +38,7 @@ def export_to_csv(obligations: List[Obligation]) -> str:
     """
     output = io.StringIO()
     writer = csv.writer(output)
-    
-    # Headers
+
     writer.writerow([
         "Obligation ID",
         "Description",
@@ -27,23 +52,24 @@ def export_to_csv(obligations: List[Obligation]) -> str:
         "Verification Status",
         "Source Clause"
     ])
-    
+
     for ob in obligations:
         writer.writerow([
             ob.obligation_id,
-            ob.description,
-            ob.responsible_party or "N/A",
+            _sanitize_spreadsheet_cell(ob.description),
+            _sanitize_spreadsheet_cell(ob.responsible_party or "N/A"),
             ob.due_date.isoformat() if ob.due_date else "N/A",
             ob.monetary_value if ob.monetary_value is not None else 0.0,
-            ob.currency or "USD",
-            ob.late_penalty or "None",
-            ob.deadline_status,
-            ob.risk_level,
-            ob.verification_status,
-            ob.source_clause or ""
+            _sanitize_spreadsheet_cell(ob.currency or "INR"),
+            _sanitize_spreadsheet_cell(ob.late_penalty or "None"),
+            _sanitize_spreadsheet_cell(ob.deadline_status),
+            _sanitize_spreadsheet_cell(ob.risk_level),
+            _sanitize_spreadsheet_cell(ob.verification_status),
+            _sanitize_spreadsheet_cell(ob.source_clause or "")
         ])
-        
+
     return output.getvalue()
+
 
 def export_to_xlsx(obligations: List[Obligation]) -> bytes:
     """
@@ -60,7 +86,6 @@ def export_to_xlsx(obligations: List[Obligation]) -> bytes:
     ]
     ws.append(headers)
 
-    # Style header row
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     header_fill = PatternFill(start_color="1F4E79", end_color="1F4E79", fill_type="solid")
     alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
@@ -81,23 +106,22 @@ def export_to_xlsx(obligations: List[Obligation]) -> bytes:
     for row_idx, ob in enumerate(obligations, start=2):
         row_data = [
             ob.obligation_id,
-            ob.description,
-            ob.responsible_party or "N/A",
+            _sanitize_spreadsheet_cell(ob.description),
+            _sanitize_spreadsheet_cell(ob.responsible_party or "N/A"),
             ob.due_date.isoformat() if ob.due_date else "N/A",
             ob.monetary_value if ob.monetary_value is not None else 0.0,
-            ob.currency or "USD",
-            ob.late_penalty or "None",
-            ob.deadline_status,
-            ob.risk_level,
-            ob.verification_status,
-            ob.source_clause or ""
+            _sanitize_spreadsheet_cell(ob.currency or "INR"),
+            _sanitize_spreadsheet_cell(ob.late_penalty or "None"),
+            _sanitize_spreadsheet_cell(ob.deadline_status),
+            _sanitize_spreadsheet_cell(ob.risk_level),
+            _sanitize_spreadsheet_cell(ob.verification_status),
+            _sanitize_spreadsheet_cell(ob.source_clause or "")
         ]
         ws.append(row_data)
         for col_num in range(1, len(row_data) + 1):
             cell = ws.cell(row=row_idx, column=col_num)
             cell.border = thin_border
 
-    # Adjust column widths
     for col in ws.columns:
         max_len = max(len(str(cell.value or "")) for cell in col)
         col_letter = col[0].column_letter
@@ -106,6 +130,7 @@ def export_to_xlsx(obligations: List[Obligation]) -> bytes:
     output = io.BytesIO()
     wb.save(output)
     return output.getvalue()
+
 
 def export_to_ics(obligations: List[Obligation], contract_filename: str = "Contract") -> str:
     """
@@ -120,28 +145,29 @@ def export_to_ics(obligations: List[Obligation], contract_filename: str = "Contr
     ]
 
     now_str = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    safe_uid_host = re.sub(r"[^a-zA-Z0-9._-]", "_", contract_filename or "contract")[:64]
 
     for ob in obligations:
         if not ob.due_date:
             continue
-            
+
         dt_start = ob.due_date.strftime("%Y%m%d")
-        summary = f"Deadline: {ob.description[:60]}"
-        desc = (
-            f"Responsible: {ob.responsible_party or 'N/A'}\\n"
-            f"Amount: {ob.monetary_value or 0} {ob.currency or ''}\\n"
-            f"Penalty: {ob.late_penalty or 'None'}\\n"
+        summary = _escape_ics_text(f"Deadline: {(ob.description or '')[:60]}")
+        desc = _escape_ics_text(
+            f"Responsible: {ob.responsible_party or 'N/A'}\n"
+            f"Amount: {ob.monetary_value or 0} {ob.currency or ''}\n"
+            f"Penalty: {ob.late_penalty or 'None'}\n"
             f"Contract: {contract_filename}"
         )
-        
+
         lines.extend([
             "BEGIN:VEVENT",
-            f"UID:cot-ob-{ob.obligation_id}@{contract_filename.replace(' ', '_')}",
+            f"UID:cot-ob-{ob.obligation_id}@{safe_uid_host}",
             f"DTSTAMP:{now_str}",
             f"DTSTART;VALUE=DATE:{dt_start}",
             f"SUMMARY:{summary}",
             f"DESCRIPTION:{desc}",
-            f"STATUS:CONFIRMED",
+            "STATUS:CONFIRMED",
             "BEGIN:VALARM",
             "TRIGGER:-P1D",
             "ACTION:DISPLAY",
@@ -151,4 +177,4 @@ def export_to_ics(obligations: List[Obligation], contract_filename: str = "Contr
         ])
 
     lines.append("END:VCALENDAR")
-    return "\r\n".join(lines) + "\r\n"
+    return "\r\n".join(lines)
