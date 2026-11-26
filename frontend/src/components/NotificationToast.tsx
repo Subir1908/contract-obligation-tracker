@@ -11,32 +11,34 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({ toasts, on
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-md w-full pointer-events-none no-print">
+    <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-2.5 max-w-sm w-full pointer-events-none no-print">
       {toasts.map((toast) => {
-        let borderClass = 'border-slate-200 bg-white text-slate-800';
-        let icon = <Info className="w-5 h-5 text-blue-600 flex-shrink-0" />;
+        let borderClass = 'border-white/[0.12]';
+        let icon = <Info className="w-4 h-4 text-[#a1a1a6] flex-shrink-0 stroke-[1.5]" />;
 
         if (toast.type === 'success') {
-          borderClass = 'border-emerald-200 bg-emerald-50/95 text-emerald-900';
-          icon = <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0" />;
+          borderClass = 'border-[#4cc38a]/35';
+          icon = <CheckCircle2 className="w-4 h-4 text-[#4cc38a] flex-shrink-0 stroke-[1.5]" />;
         } else if (toast.type === 'error') {
-          borderClass = 'border-rose-200 bg-rose-50/95 text-rose-900';
-          icon = <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />;
+          borderClass = 'border-[#e5484d]/40';
+          icon = <AlertCircle className="w-4 h-4 text-[#e5484d] flex-shrink-0 stroke-[1.5]" />;
         } else if (toast.type === 'warning') {
-          borderClass = 'border-amber-200 bg-amber-50/95 text-amber-900';
-          icon = <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />;
+          borderClass = 'border-[#eab308]/35';
+          icon = <AlertTriangle className="w-4 h-4 text-[#eab308] flex-shrink-0 stroke-[1.5]" />;
         }
 
         return (
           <div
             key={toast.id}
             role="alert"
-            className={`pointer-events-auto flex items-start gap-3 p-4 rounded-xl border shadow-lg backdrop-blur-sm transition-all animate-in fade-in slide-in-from-bottom-3 duration-200 ${borderClass}`}
+            className={`pointer-events-auto flex items-start gap-3 p-3.5 rounded-xl bg-[#19191b] text-[#ededed] border shadow-2xl ${borderClass}`}
           >
-            {icon}
+            <div className="mt-0.5">{icon}</div>
             <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold leading-tight">{toast.title}</h4>
-              <p className="text-xs mt-0.5 opacity-90 leading-relaxed break-words">{toast.message}</p>
+              <h4 className="text-[13px] font-medium leading-tight">{toast.title}</h4>
+              <p className="text-[12px] text-[#a1a1a6] mt-0.5 leading-relaxed break-words">
+                {toast.message}
+              </p>
               {toast.actionLabel && toast.onAction && (
                 <button
                   type="button"
@@ -44,7 +46,7 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({ toasts, on
                     toast.onAction?.();
                     onDismiss(toast.id);
                   }}
-                  className="mt-2 text-xs font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity"
+                  className="mt-2 text-[12px] font-medium text-[#ededed] underline underline-offset-2 hover:text-white cursor-pointer"
                 >
                   {toast.actionLabel}
                 </button>
@@ -53,10 +55,10 @@ export const NotificationToast: React.FC<NotificationToastProps> = ({ toasts, on
             <button
               type="button"
               onClick={() => onDismiss(toast.id)}
-              className="text-slate-400 hover:text-slate-700 p-0.5 rounded-lg transition-colors"
+              className="text-[#71717a] hover:text-[#ededed] p-0.5 rounded transition-colors cursor-pointer"
               aria-label="Dismiss notification"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5 stroke-[1.5]" />
             </button>
           </div>
         );

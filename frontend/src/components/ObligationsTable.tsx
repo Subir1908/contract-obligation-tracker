@@ -1,26 +1,26 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { 
-  Search, 
-  ArrowUpDown, 
-  Plus, 
-  Trash2, 
-  Copy, 
-  AlertCircle, 
-  Clock, 
-  CalendarCheck, 
-  DollarSign, 
-  Building2, 
-  FileText, 
-  Calendar as CalendarIcon, 
-  ShieldAlert, 
-  X, 
-  ChevronUp, 
-  ChevronDown, 
-  IndianRupee, 
-  Check 
+import {
+  Search,
+  ArrowUpDown,
+  Plus,
+  Trash2,
+  Copy,
+  FileText,
+  Calendar as CalendarIcon,
+  X,
+  ChevronUp,
+  ChevronDown,
+  Check
 } from 'lucide-react';
 import type { ContractObligation, TimelineStatus, CurrencyCode, RiskLevel } from '../types/obligation';
-import { calculateUrgency, calculateRisk, formatCurrency, formatDateDisplay, formatIndianCompactNotation, normalizeDateString } from '../utils/dateUtils';
+import {
+  calculateUrgency,
+  calculateRisk,
+  formatCurrency,
+  formatDateDisplay,
+  formatIndianCompactNotation,
+  normalizeDateString,
+} from '../utils/dateUtils';
 
 interface ObligationsTableProps {
   obligations: ContractObligation[];
@@ -36,6 +36,8 @@ interface ObligationsTableProps {
   currency?: CurrencyCode;
   conversionMultiplier?: number;
   onSelectClauseSnippet?: (id: string) => void;
+  externalSearchQuery?: string;
+  onExternalSearchChange?: (query: string) => void;
 }
 
 interface DateCellProps {
@@ -63,8 +65,8 @@ const DateCell: React.FC<DateCellProps> = ({ id, dueDate, onUpdate }) => {
   };
 
   return (
-    <div className="flex flex-col gap-1 min-w-[145px]">
-      <div className="relative flex items-center bg-slate-50 hover:bg-white focus-within:bg-white rounded-lg border border-slate-200 hover:border-slate-300 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
+    <div className="flex flex-col gap-1 min-w-[144px]">
+      <div className="relative flex items-center bg-[#141415] hover:bg-[#1e1e21] focus-within:bg-[#141415] rounded-lg border border-white/[0.08] hover:border-white/[0.16] focus-within:border-white/30 transition-colors">
         <input
           type="text"
           value={dueDate || ''}
@@ -80,16 +82,17 @@ const DateCell: React.FC<DateCellProps> = ({ id, dueDate, onUpdate }) => {
               onUpdate(id, { dueDate: normalized });
             }
           }}
-          className="text-xs font-mono font-medium text-slate-800 bg-transparent pl-2 pr-7 py-1.5 w-full focus:outline-hidden"
+          className="text-[12px] font-mono tabular-nums text-[#ededed] placeholder-[#52525b] bg-transparent pl-2.5 pr-7 py-1.5 w-full focus:outline-none"
           title="Type date manually (YYYY-MM-DD or DD/MM/YYYY) or click calendar icon"
         />
         <button
           type="button"
           onClick={handleCalendarClick}
-          className="absolute right-1 text-slate-400 hover:text-blue-600 p-1 cursor-pointer transition-colors"
+          className="absolute right-1 text-[#71717a] hover:text-[#ededed] p-1 cursor-pointer transition-colors"
           title="Open Calendar Picker"
+          aria-label="Open calendar picker"
         >
-          <CalendarIcon className="w-3.5 h-3.5" />
+          <CalendarIcon className="w-3.5 h-3.5 stroke-[1.5]" />
         </button>
         <input
           ref={dateInputRef}
@@ -104,7 +107,7 @@ const DateCell: React.FC<DateCellProps> = ({ id, dueDate, onUpdate }) => {
           tabIndex={-1}
         />
       </div>
-      <span className="text-[10px] text-slate-400 px-1 font-mono">
+      <span className="text-[11px] text-[#71717a] px-1 font-mono tabular-nums">
         {formatDateDisplay(dueDate || '')}
       </span>
     </div>
@@ -125,23 +128,28 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
   currency = 'INR',
   conversionMultiplier = 1,
   onSelectClauseSnippet,
+  externalSearchQuery,
+  onExternalSearchChange,
 }) => {
-  // Search and sort state
-  const [searchQuery, setSearchQuery] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
   const [partyFilter, setPartyFilter] = useState('ALL');
   const [sortField, setSortField] = useState<'dueDate' | 'monetaryValue' | 'responsibleParty' | 'risk'>('dueDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
-  // Unique parties list for party filter dropdown
+  const searchQuery = externalSearchQuery !== undefined ? externalSearchQuery : localSearch;
+  const setSearchQuery = (val: string) => {
+    if (onExternalSearchChange) onExternalSearchChange(val);
+    else setLocalSearch(val);
+  };
+
   const uniqueParties = useMemo(() => {
     const set = new Set<string>();
-    obligations.forEach(o => {
+    obligations.forEach((o) => {
       if (o.responsibleParty) set.add(o.responsibleParty.trim());
     });
     return Array.from(set).sort();
   }, [obligations]);
 
-  // Handle sorting toggle
   const handleSortToggle = (field: 'dueDate' | 'monetaryValue' | 'responsibleParty' | 'risk') => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -151,45 +159,40 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
     }
   };
 
-  // Filter and sort obligations
   const filteredObligations = useMemo(() => {
     let result = [...obligations];
 
-    // 1. Status Filter 
     if (activeStatusFilter !== 'ALL') {
-      result = result.filter(ob => {
+      result = result.filter((ob) => {
         const urgency = calculateUrgency(ob.dueDate, referenceDate);
         return urgency.status === activeStatusFilter;
       });
     }
 
-    // 2. Risk Filter 
     if (activeRiskFilter !== 'ALL') {
-      result = result.filter(ob => {
+      result = result.filter((ob) => {
         const urgency = calculateUrgency(ob.dueDate, referenceDate);
         const risk = calculateRisk(ob.monetaryValue, ob.latePenalty, urgency.status);
         return (ob.riskLevel || risk.level) === activeRiskFilter;
       });
     }
 
-    // 3. Party Filter
     if (partyFilter !== 'ALL') {
-      result = result.filter(ob => ob.responsibleParty.trim() === partyFilter);
+      result = result.filter((ob) => ob.responsibleParty.trim() === partyFilter);
     }
 
-    // 4. Search Query (full text across description, party, penalty, source clause, id)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      result = result.filter(ob => 
-        ob.description.toLowerCase().includes(q) ||
-        ob.responsibleParty.toLowerCase().includes(q) ||
-        ob.latePenalty.toLowerCase().includes(q) ||
-        (ob.sourceClause && ob.sourceClause.toLowerCase().includes(q)) ||
-        ob.id.toLowerCase().includes(q)
+      result = result.filter(
+        (ob) =>
+          ob.description.toLowerCase().includes(q) ||
+          ob.responsibleParty.toLowerCase().includes(q) ||
+          ob.latePenalty.toLowerCase().includes(q) ||
+          (ob.sourceClause && ob.sourceClause.toLowerCase().includes(q)) ||
+          ob.id.toLowerCase().includes(q)
       );
     }
 
-    // 5. Sorting
     result.sort((a, b) => {
       if (sortField === 'dueDate') {
         const dateA = a.dueDate || '';
@@ -217,20 +220,27 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
     });
 
     return result;
-  }, [obligations, activeStatusFilter, activeRiskFilter, partyFilter, searchQuery, sortField, sortOrder, referenceDate]);
+  }, [
+    obligations,
+    activeStatusFilter,
+    activeRiskFilter,
+    partyFilter,
+    searchQuery,
+    sortField,
+    sortOrder,
+    referenceDate,
+  ]);
 
-  // Aggregate monetary value for filtered list
   const filteredTotalValue = useMemo(() => {
     return filteredObligations.reduce((sum, o) => sum + (o.monetaryValue || 0), 0);
   }, [filteredObligations]);
 
-  // Counts by status for tabs
   const statusCounts = useMemo(() => {
     let overdue = 0;
     let dueToday = 0;
     let upcoming = 0;
 
-    obligations.forEach(o => {
+    obligations.forEach((o) => {
       const u = calculateUrgency(o.dueDate, referenceDate);
       if (u.status === 'OVERDUE') overdue++;
       else if (u.status === 'DUE_TODAY') dueToday++;
@@ -241,294 +251,194 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
   }, [obligations, referenceDate]);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden">
-      
-      {/* TABLE TOOLBAR & CONTROLS */}
-      <div className="p-4 sm:p-5 border-b border-slate-200/80 space-y-3.5 no-print">
-        
-        {/* Row 1: Search, Filter Tabs & Add Button */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5">
-          
-          {/* Status Tabs */}
-          <div className="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200/70 overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => onStatusFilterChange('ALL')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                activeStatusFilter === 'ALL'
-                  ? 'bg-white text-slate-900 shadow-2xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <span>All Obligations</span>
-              <span className="text-[11px] px-1.5 py-0.2 rounded-md bg-slate-200/80 text-slate-700">
-                {statusCounts.all}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onStatusFilterChange('OVERDUE')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                activeStatusFilter === 'OVERDUE'
-                  ? 'bg-rose-600 text-white shadow-xs'
-                  : 'text-rose-700 hover:bg-rose-50'
-              }`}
-            >
-              <AlertCircle className="w-3.5 h-3.5" />
-              <span>Overdue</span>
-              <span className={`text-[11px] px-1.5 py-0.2 rounded-md ${
-                activeStatusFilter === 'OVERDUE' ? 'bg-rose-700 text-rose-100' : 'bg-rose-100 text-rose-800'
-              }`}>
-                {statusCounts.overdue}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onStatusFilterChange('DUE_TODAY')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                activeStatusFilter === 'DUE_TODAY'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'text-amber-800 hover:bg-amber-50'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              <span>Due Today</span>
-              <span className={`text-[11px] px-1.5 py-0.2 rounded-md ${
-                activeStatusFilter === 'DUE_TODAY' ? 'bg-amber-700 text-amber-100' : 'bg-amber-100 text-amber-800'
-              }`}>
-                {statusCounts.dueToday}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onStatusFilterChange('UPCOMING')}
-              className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
-                activeStatusFilter === 'UPCOMING'
-                  ? 'bg-emerald-600 text-white shadow-xs'
-                  : 'text-emerald-700 hover:bg-emerald-50'
-              }`}
-            >
-              <CalendarCheck className="w-3.5 h-3.5" />
-              <span>Upcoming</span>
-              <span className={`text-[11px] px-1.5 py-0.2 rounded-md ${
-                activeStatusFilter === 'UPCOMING' ? 'bg-emerald-700 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
-              }`}>
-                {statusCounts.upcoming}
-              </span>
-            </button>
+    <div className="bg-[#19191b] rounded-xl border border-white/[0.08] overflow-hidden">
+      {/* Toolbar */}
+      <div className="p-4 sm:p-5 border-b border-white/[0.08] space-y-4 no-print">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {/* Underline Navigation Tabs (matching reference table/card tabs) */}
+          <div className="flex items-center gap-5 border-b border-white/[0.06] overflow-x-auto">
+            {(
+              [
+                { key: 'ALL', label: 'All obligations', count: statusCounts.all },
+                { key: 'OVERDUE', label: 'Overdue', count: statusCounts.overdue },
+                { key: 'DUE_TODAY', label: 'Due today', count: statusCounts.dueToday },
+                { key: 'UPCOMING', label: 'Upcoming', count: statusCounts.upcoming },
+              ] as const
+            ).map((tab) => {
+              const isActive = activeStatusFilter === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => onStatusFilterChange(tab.key)}
+                  className={`pb-2.5 text-[13px] whitespace-nowrap inline-flex items-center gap-2 border-b-2 transition-colors cursor-pointer ${
+                    isActive
+                      ? 'border-[#ededed] text-[#ededed] font-medium'
+                      : 'border-transparent text-[#71717a] hover:text-[#a1a1a6]'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className="text-[11px] font-mono tabular-nums text-[#71717a]">
+                    {tab.count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Add New Obligation Action */}
+          {/* Primary Add Action */}
           <div className="flex items-center gap-2 self-end lg:self-auto">
             <button
               type="button"
               onClick={onAddObligation}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl shadow-xs transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] font-medium text-[#0f0f10] bg-[#ededed] hover:bg-white rounded-lg transition-colors cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
-              <span>Add Custom Obligation</span>
+              <Plus className="w-3.5 h-3.5 stroke-[1.75]" />
+              <span>Add obligation</span>
             </button>
           </div>
         </div>
 
-        {/* Row 2: Search Input & Party Filter & Sort Controls */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-          
-          {/* Search Box */}
+        {/* Search & Party Filter & Sort */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
           <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-[#71717a] absolute left-3 top-1/2 -translate-y-1/2 stroke-[1.5]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search obligations, parties, penalties, source clauses, or IDs..."
-              className="w-full text-xs pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100/70 focus:bg-white rounded-xl border border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden transition-all"
+              placeholder="Search obligations, parties, clauses"
+              className="w-full text-[13px] pl-8 pr-8 h-9 bg-[#141415] text-[#ededed] placeholder-[#71717a] rounded-lg border border-white/[0.08] focus:border-white/25 focus:outline-none transition-colors"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#71717a] hover:text-[#ededed] p-0.5 cursor-pointer"
+                aria-label="Clear search"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          {/* Party and Sort Filters */}
           <div className="flex items-center gap-2 flex-wrap">
-            
-            {/* Party Dropdown */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-600">
-              <Building2 className="w-3.5 h-3.5 text-slate-400" />
-              <select
-                value={partyFilter}
-                onChange={(e) => setPartyFilter(e.target.value)}
-                className="text-xs bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-hidden font-medium cursor-pointer"
-              >
-                <option value="ALL">All Parties ({uniqueParties.length})</option>
-                {uniqueParties.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
-            </div>
+            <select
+              value={partyFilter}
+              onChange={(e) => setPartyFilter(e.target.value)}
+              className="h-9 text-[12px] bg-[#141415] border border-white/[0.08] rounded-lg px-2.5 text-[#a1a1a6] focus:border-white/25 focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">All parties ({uniqueParties.length})</option>
+              {uniqueParties.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
 
-            {/* Quick Sort Controls */}
-            <div className="flex items-center gap-1 bg-slate-100/90 rounded-lg p-0.5 border border-slate-200/70 text-xs">
-              <button
-                type="button"
-                onClick={() => handleSortToggle('dueDate')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${
-                  sortField === 'dueDate'
-                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>Date</span>
-                {sortField === 'dueDate' && (
-                  sortOrder === 'asc' ? <ChevronUp className="w-3 h-3 text-blue-600" /> : <ChevronDown className="w-3 h-3 text-blue-600" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSortToggle('monetaryValue')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${
-                  sortField === 'monetaryValue'
-                    ? 'bg-white text-slate-900 shadow-2xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>Value</span>
-                {sortField === 'monetaryValue' && (
-                  sortOrder === 'asc' ? <ChevronUp className="w-3 h-3 text-blue-600" /> : <ChevronDown className="w-3 h-3 text-blue-600" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSortToggle('risk')}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-all flex items-center gap-1 cursor-pointer ${
-                  sortField === 'risk'
-                    ? 'bg-white text-purple-900 shadow-2xs font-semibold'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <span>Risk</span>
-                {sortField === 'risk' && (
-                  sortOrder === 'asc' ? <ChevronUp className="w-3 h-3 text-purple-600" /> : <ChevronDown className="w-3 h-3 text-purple-600" />
-                )}
-              </button>
+            <div className="inline-flex items-center gap-0.5 bg-[#141415] rounded-lg p-0.5 border border-white/[0.08] h-9">
+              {(
+                [
+                  { key: 'dueDate', label: 'Date' },
+                  { key: 'monetaryValue', label: 'Value' },
+                  { key: 'risk', label: 'Risk' },
+                ] as const
+              ).map((item) => {
+                const isActive = sortField === item.key;
+                return (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => handleSortToggle(item.key)}
+                    className={`px-2.5 h-7 rounded-md text-[12px] font-medium inline-flex items-center gap-1 transition-colors cursor-pointer ${
+                      isActive
+                        ? 'bg-[#232325] text-[#ededed] raised-highlight'
+                        : 'text-[#71717a] hover:text-[#ededed]'
+                    }`}
+                  >
+                    <span>{item.label}</span>
+                    {isActive &&
+                      (sortOrder === 'asc' ? (
+                        <ChevronUp className="w-3 h-3 text-[#ededed]" />
+                      ) : (
+                        <ChevronDown className="w-3 h-3 text-[#ededed]" />
+                      ))}
+                  </button>
+                );
+              })}
             </div>
-
           </div>
         </div>
-
       </div>
 
-      {/* DATA TABLE SECTION */}
+      {/* Data Table */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/80 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider select-none">
-              
-              <th className="py-3 px-3 w-10 text-center text-slate-400 font-mono">
-                #
-              </th>
-
-              <th className="py-3 px-4 min-w-[260px]">
-                <div className="flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Obligation / Deliverable Description</span>
-                </div>
-              </th>
-
-              <th className="py-3 px-3 min-w-[170px]">
+            <tr className="bg-[#141415]/60 border-b border-white/[0.08] text-[12px] font-medium text-[#71717a] select-none">
+              <th className="py-3 px-3 w-10 text-center font-mono">#</th>
+              <th className="py-3 px-4 min-w-[260px]">Obligation</th>
+              <th className="py-3 px-3 min-w-[165px]">
                 <button
                   type="button"
                   onClick={() => handleSortToggle('responsibleParty')}
-                  className="flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 hover:text-[#ededed] cursor-pointer"
                 >
-                  <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Responsible Party</span>
-                  <ArrowUpDown className="w-3 h-3 opacity-50" />
+                  <span>Party</span>
+                  <ArrowUpDown className="w-3 h-3 opacity-60" />
                 </button>
               </th>
-
               <th className="py-3 px-3 min-w-[155px]">
                 <button
                   type="button"
                   onClick={() => handleSortToggle('dueDate')}
-                  className="flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 hover:text-[#ededed] cursor-pointer"
                 >
-                  <CalendarIcon className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Due Date</span>
-                  <ArrowUpDown className="w-3 h-3 opacity-50" />
+                  <span>Due date</span>
+                  <ArrowUpDown className="w-3 h-3 opacity-60" />
                 </button>
               </th>
-
-              <th className="py-3 px-3 min-w-[145px]">
-                <span>Timeline Status</span>
-              </th>
-
-              <th className="py-3 px-3 min-w-[130px]">
+              <th className="py-3 px-3 min-w-[140px]">Status</th>
+              <th className="py-3 px-3 min-w-[115px]">
                 <button
                   type="button"
                   onClick={() => handleSortToggle('risk')}
-                  className="flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 hover:text-[#ededed] cursor-pointer"
                 >
-                  <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Risk Severity</span>
-                  <ArrowUpDown className="w-3 h-3 opacity-50" />
+                  <span>Risk</span>
+                  <ArrowUpDown className="w-3 h-3 opacity-60" />
                 </button>
               </th>
-
-              <th className="py-3 px-3 min-w-[155px]">
+              <th className="py-3 px-3 min-w-[145px]">
                 <button
                   type="button"
                   onClick={() => handleSortToggle('monetaryValue')}
-                  className="flex items-center gap-1.5 hover:text-slate-900 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 hover:text-[#ededed] cursor-pointer"
                 >
-                  {currency === 'INR' ? (
-                    <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
-                  ) : (
-                    <DollarSign className="w-3.5 h-3.5 text-slate-400" />
-                  )}
-                  <span>Value ({currency === 'INR' ? '₹ INR' : '$ USD'})</span>
-                  <ArrowUpDown className="w-3 h-3 opacity-50" />
+                  <span>Value ({currency})</span>
+                  <ArrowUpDown className="w-3 h-3 opacity-60" />
                 </button>
               </th>
-
-              <th className="py-3 px-3 min-w-[210px]">
-                <div className="flex items-center gap-1.5">
-                  <ShieldAlert className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Late Penalty & Source Clause</span>
-                </div>
-              </th>
-
-              <th className="py-3 px-3 w-24 text-right no-print">
-                <span>Actions</span>
-              </th>
-
+              <th className="py-3 px-3 min-w-[210px]">Penalty & source</th>
+              <th className="py-3 px-3 w-20 text-right no-print">Actions</th>
             </tr>
           </thead>
 
-          <tbody className="divide-y divide-slate-100 text-xs">
+          <tbody className="divide-y divide-white/[0.06] text-[13px]">
             {filteredObligations.length === 0 ? (
               <tr>
                 <td colSpan={9} className="py-14 text-center">
-                  <div className="max-w-md mx-auto space-y-3">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
-                      <FileText className="w-6 h-6" />
+                  <div className="max-w-md mx-auto space-y-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-[#232325] border border-white/[0.08] text-[#71717a] flex items-center justify-center mx-auto">
+                      <FileText className="w-5 h-5 stroke-[1.5]" />
                     </div>
-                    <h4 className="text-sm font-bold text-slate-800">
+                    <h4 className="text-[14px] font-medium text-[#ededed]">
                       No matching obligations found
                     </h4>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-[12px] text-[#71717a]">
                       Upload a PDF or DOCX contract above to extract obligations, or adjust your search and filter criteria.
                     </p>
-                    <div className="pt-2 flex items-center justify-center gap-2">
+                    <div className="pt-2 flex items-center justify-center">
                       <button
                         type="button"
                         onClick={() => {
@@ -537,9 +447,9 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                           onStatusFilterChange('ALL');
                           if (onRiskFilterChange) onRiskFilterChange('ALL');
                         }}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                        className="px-3 py-1.5 text-[12px] font-medium rounded-lg bg-[#232325] hover:bg-[#2c2c30] text-[#ededed] border border-white/[0.08] transition-colors cursor-pointer"
                       >
-                        Clear Filters
+                        Clear filters
                       </button>
                     </div>
                   </div>
@@ -551,129 +461,114 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                 const computedRisk = calculateRisk(ob.monetaryValue, ob.latePenalty, urgency.status);
                 const riskLevel = ob.riskLevel || computedRisk.level;
 
-                // Timeline Urgency Badge styling per FR-5.2
-                let badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200/90';
-                let dotClass = 'bg-emerald-500';
-                let icon = <CalendarCheck className="w-3.5 h-3.5 text-emerald-600" />;
-
+                let dotColor = 'bg-[#4cc38a]';
+                let statusTextColor = 'text-[#4cc38a]';
                 if (urgency.status === 'OVERDUE') {
-                  badgeClass = 'bg-rose-50 text-rose-700 border-rose-200/90';
-                  dotClass = 'bg-rose-500';
-                  icon = <AlertCircle className="w-3.5 h-3.5 text-rose-600" />;
+                  dotColor = 'bg-[#e5484d]';
+                  statusTextColor = 'text-[#e5484d]';
                 } else if (urgency.status === 'DUE_TODAY') {
-                  badgeClass = 'bg-amber-50 text-amber-800 border-amber-200/90';
-                  dotClass = 'bg-amber-500 animate-ping';
-                  icon = <Clock className="w-3.5 h-3.5 text-amber-600" />;
+                  dotColor = 'bg-[#eab308]';
+                  statusTextColor = 'text-[#eab308]';
+                } else if (!ob.dueDate) {
+                  dotColor = 'bg-[#71717a]';
+                  statusTextColor = 'text-[#a1a1a6]';
                 }
 
-                // Risk Badge Styling per FR-7.1
-                let riskBadgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
+                let riskColor = 'text-[#4cc38a]';
+                let riskDot = 'bg-[#4cc38a]';
                 if (riskLevel === 'HIGH') {
-                  riskBadgeClass = 'bg-purple-100 text-purple-900 border-purple-300 font-bold';
+                  riskColor = 'text-[#e5484d]';
+                  riskDot = 'bg-[#e5484d]';
                 } else if (riskLevel === 'MEDIUM') {
-                  riskBadgeClass = 'bg-amber-100 text-amber-900 border-amber-300 font-semibold';
-                } else {
-                  riskBadgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-200';
+                  riskColor = 'text-[#eab308]';
+                  riskDot = 'bg-[#eab308]';
                 }
+
+                const isVerified = ob.verificationStatus === 'VERIFIED';
 
                 return (
-                  <tr 
-                    key={ob.id} 
-                    className={`hover:bg-blue-50/25 transition-colors group relative ${
-                      riskLevel === 'HIGH' ? 'bg-purple-50/20' : ''
-                    }`}
+                  <tr
+                    key={ob.id}
+                    className="hover:bg-white/[0.02] transition-colors group align-top"
                   >
-                    {/* Index / ID */}
-                    <td className="py-3 px-3 text-center font-mono text-[11px] text-slate-400">
+                    {/* Index */}
+                    <td className="py-3.5 px-3 text-center font-mono text-[12px] tabular-nums text-[#71717a]">
                       {idx + 1}
                     </td>
 
-                    {/* Obligation Description (In-Place Editable - FR-4.2) */}
-                    <td className="py-2.5 px-4">
-                      <div className="relative">
+                    {/* Obligation Description */}
+                    <td className="py-3 px-4">
+                      <div className="space-y-1.5">
                         <textarea
                           rows={2}
                           value={ob.description}
                           onChange={(e) => onUpdateObligation(ob.id, { description: e.target.value })}
-                          placeholder="Enter obligation or deliverable description..."
-                          className="w-full text-xs text-slate-800 font-medium bg-transparent hover:bg-white focus:bg-white p-1.5 -m-1.5 rounded-lg border border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden transition-all resize-none leading-relaxed"
+                          placeholder="Obligation description"
+                          className="w-full text-[13px] text-[#ededed] bg-transparent hover:bg-[#141415]/80 focus:bg-[#141415] px-2 py-1 rounded-md border border-transparent hover:border-white/[0.08] focus:border-white/25 focus:outline-none transition-colors resize-none leading-snug"
                         />
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="font-mono text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded">
-                            {ob.id}
-                          </span>
-                          
-                          {/* Verification Checkbox */}
+                        <div className="px-2 flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => onUpdateObligation(ob.id, { 
-                              verificationStatus: ob.verificationStatus === 'VERIFIED' ? 'UNVERIFIED' : 'VERIFIED' 
-                            })}
-                            className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.2 rounded font-medium transition-colors cursor-pointer ${
-                              ob.verificationStatus === 'VERIFIED'
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            onClick={() =>
+                              onUpdateObligation(ob.id, {
+                                verificationStatus: isVerified ? 'UNVERIFIED' : 'VERIFIED',
+                              })
+                            }
+                            className={`inline-flex items-center gap-1.5 text-[11px] px-2 py-0.5 rounded-md border transition-colors cursor-pointer ${
+                              isVerified
+                                ? 'bg-[#4cc38a]/10 text-[#4cc38a] border-[#4cc38a]/25 hover:bg-[#4cc38a]/15'
+                                : 'bg-[#141415] text-[#71717a] border-white/[0.08] hover:text-[#ededed]'
                             }`}
-                            title="Toggle Human Verification Status"
+                            title="Toggle verification status"
                           >
-                            <Check className={`w-3 h-3 ${ob.verificationStatus === 'VERIFIED' ? 'text-emerald-600' : 'text-slate-400'}`} />
-                            <span>{ob.verificationStatus || 'VERIFIED'}</span>
+                            <Check className="w-3 h-3 stroke-[1.75]" />
+                            <span>{isVerified ? 'Verified' : 'Unverified'}</span>
                           </button>
                         </div>
                       </div>
                     </td>
 
-                    {/* Responsible Party (In-Place Editable - FR-4.2) */}
-                    <td className="py-2.5 px-3">
+                    {/* Responsible Party */}
+                    <td className="py-3 px-3">
                       <input
                         type="text"
                         value={ob.responsibleParty}
                         onChange={(e) => onUpdateObligation(ob.id, { responsibleParty: e.target.value })}
-                        placeholder="Responsible party..."
-                        className="w-full text-xs font-semibold text-slate-900 bg-transparent hover:bg-white focus:bg-white p-1.5 -m-1.5 rounded-lg border border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden transition-all"
+                        placeholder="Responsible party"
+                        className="w-full text-[13px] font-medium text-[#ededed] bg-transparent hover:bg-[#141415]/80 focus:bg-[#141415] px-2 py-1.5 rounded-md border border-transparent hover:border-white/[0.08] focus:border-white/25 focus:outline-none transition-colors"
                       />
                     </td>
 
-                    {/* Milestone / Due Date */}
-                    <td className="py-2.5 px-3">
-                      <DateCell
-                        id={ob.id}
-                        dueDate={ob.dueDate}
-                        onUpdate={onUpdateObligation}
-                      />
+                    {/* Due Date */}
+                    <td className="py-3 px-3">
+                      <DateCell id={ob.id} dueDate={ob.dueDate} onUpdate={onUpdateObligation} />
                     </td>
 
-                    {/* Dynamic Urgency Status Badge  */}
-                    <td className="py-2.5 px-3">
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border shadow-2xs ${badgeClass}`}>
-                          <span className="relative flex h-2 w-2">
-                            {urgency.status === 'DUE_TODAY' && (
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                            )}
-                            <span className={`relative inline-flex rounded-full h-2 w-2 ${dotClass}`}></span>
-                          </span>
-                          {icon}
+                    {/* Timeline Status */}
+                    <td className="py-3.5 px-3">
+                      <div className="flex flex-col gap-1">
+                        <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${statusTextColor}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${dotColor}`}></span>
                           <span>{urgency.label}</span>
                         </span>
-                        <span className="text-[10px] text-slate-500 font-medium px-1">
+                        <span className="text-[11px] text-[#71717a] tabular-nums">
                           {urgency.formattedDelta}
                         </span>
                       </div>
                     </td>
 
-                    {/* Risk Severity Level Scoring */}
-                    <td className="py-2.5 px-3">
+                    {/* Risk Severity */}
+                    <td className="py-3.5 px-3">
                       <div className="flex flex-col gap-1 items-start">
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border ${riskBadgeClass}`}>
-                          <ShieldAlert className="w-3 h-3" />
-                          <span>{riskLevel} RISK</span>
+                        <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${riskColor}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${riskDot}`}></span>
+                          <span>{riskLevel.charAt(0) + riskLevel.slice(1).toLowerCase()}</span>
                         </span>
                         <select
                           value={riskLevel}
                           onChange={(e) => onUpdateObligation(ob.id, { riskLevel: e.target.value as RiskLevel })}
-                          className="text-[10px] bg-transparent border-0 text-slate-500 hover:text-slate-800 cursor-pointer focus:outline-hidden"
-                          title="Override automated risk level"
+                          className="text-[11px] bg-[#141415] border border-white/[0.08] rounded px-1.5 py-0.5 text-[#a1a1a6] hover:text-[#ededed] cursor-pointer focus:outline-none"
+                          title="Override risk level"
                         >
                           <option value="LOW">Low</option>
                           <option value="MEDIUM">Medium</option>
@@ -682,11 +577,11 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Monetary Value (In-Place Editable Currency - FR-3.4) */}
-                    <td className="py-2.5 px-3">
-                      <div className="relative">
+                    {/* Monetary Value */}
+                    <td className="py-3 px-3">
+                      <div className="space-y-1">
                         <div className="flex items-center">
-                          <span className="text-slate-400 text-xs mr-1 font-mono font-semibold">
+                          <span className="text-[#71717a] text-[12px] mr-1 font-mono">
                             {currency === 'INR' ? '₹' : '$'}
                           </span>
                           <input
@@ -694,15 +589,19 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                             step={currency === 'INR' ? '1000' : '100'}
                             min="0"
                             value={ob.monetaryValue || ''}
-                            onChange={(e) => onUpdateObligation(ob.id, { monetaryValue: parseFloat(e.target.value) || 0 })}
+                            onChange={(e) =>
+                              onUpdateObligation(ob.id, {
+                                monetaryValue: parseFloat(e.target.value) || 0,
+                              })
+                            }
                             placeholder="0"
-                            className="w-full text-xs font-mono font-semibold text-slate-900 bg-transparent hover:bg-white focus:bg-white p-1.5 -m-1.5 rounded-lg border border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden transition-all"
+                            className="w-full text-[13px] font-mono tabular-nums font-medium text-[#ededed] bg-transparent hover:bg-[#141415]/80 focus:bg-[#141415] px-1.5 py-1 rounded-md border border-transparent hover:border-white/[0.08] focus:border-white/25 focus:outline-none transition-colors"
                           />
                         </div>
-                        <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                        <div className="text-[11px] text-[#71717a] font-mono tabular-nums px-1">
                           {formatCurrency(ob.monetaryValue, currency, conversionMultiplier)}
                           {currency === 'INR' && ob.monetaryValue * conversionMultiplier >= 100000 && (
-                            <span className="ml-1 text-emerald-700 font-medium">
+                            <span className="ml-1 text-[#a1a1a6]">
                               ({formatIndianCompactNotation(ob.monetaryValue, conversionMultiplier)})
                             </span>
                           )}
@@ -710,86 +609,84 @@ export const ObligationsTable: React.FC<ObligationsTableProps> = ({
                       </div>
                     </td>
 
-                    {/* Late Penalty Clause & Verbatim Snippet */}
-                    <td className="py-2.5 px-3">
-                      <div className="space-y-1">
+                    {/* Late Penalty & Source Snippet */}
+                    <td className="py-3 px-3">
+                      <div className="space-y-1.5">
                         <textarea
                           rows={2}
                           value={ob.latePenalty}
                           onChange={(e) => onUpdateObligation(ob.id, { latePenalty: e.target.value })}
-                          placeholder="Late penalty terms..."
-                          className="w-full text-xs text-slate-700 bg-transparent hover:bg-white focus:bg-white p-1 -m-1 rounded-lg border border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-hidden transition-all resize-none leading-tight"
+                          placeholder="Late penalty terms"
+                          className="w-full text-[12px] text-[#a1a1a6] bg-transparent hover:bg-[#141415]/80 focus:bg-[#141415] focus:text-[#ededed] px-2 py-1 rounded-md border border-transparent hover:border-white/[0.08] focus:border-white/25 focus:outline-none transition-colors resize-none leading-snug"
                         />
                         {ob.sourceClause && (
-                          <div 
+                          <button
+                            type="button"
                             onClick={() => onSelectClauseSnippet && onSelectClauseSnippet(ob.id)}
-                            className="text-[10px] text-blue-600 hover:text-blue-800 bg-blue-50/60 p-1 rounded flex items-center gap-1 cursor-pointer truncate"
+                            className="w-full text-left text-[11px] text-[#71717a] hover:text-[#ededed] bg-[#141415]/70 hover:bg-[#232325] px-2 py-1 rounded border border-white/[0.06] flex items-center gap-1.5 cursor-pointer transition-colors"
                             title={ob.sourceClause}
                           >
-                            <FileText className="w-3 h-3 flex-shrink-0" />
-                            <span className="truncate italic">Snippet: "{ob.sourceClause}"</span>
-                          </div>
+                            <FileText className="w-3 h-3 flex-shrink-0 stroke-[1.5]" />
+                            <span className="truncate">{ob.sourceClause}</span>
+                          </button>
                         )}
                       </div>
                     </td>
 
                     {/* Actions */}
-                    <td className="py-2.5 px-3 text-right no-print">
-                      <div className="flex items-center justify-end gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <td className="py-3 px-3 text-right no-print">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           type="button"
                           onClick={() => onDuplicateObligation(ob.id)}
-                          title="Duplicate obligation row"
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                          title="Duplicate obligation"
+                          className="p-1.5 text-[#71717a] hover:text-[#ededed] hover:bg-white/[0.06] rounded-md transition-colors cursor-pointer"
                           aria-label="Duplicate obligation"
                         >
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-3.5 h-3.5 stroke-[1.5]" />
                         </button>
                         <button
                           type="button"
                           onClick={() => onDeleteObligation(ob.id)}
-                          title="Delete obligation row"
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete obligation"
+                          className="p-1.5 text-[#71717a] hover:text-[#e5484d] hover:bg-[#e5484d]/10 rounded-md transition-colors cursor-pointer"
                           aria-label="Delete obligation"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3.5 h-3.5 stroke-[1.5]" />
                         </button>
                       </div>
                     </td>
-
                   </tr>
                 );
               })
             )}
           </tbody>
 
-          {/* TABLE FOOTER SUMMARY */}
           {filteredObligations.length > 0 && (
             <tfoot>
-              <tr className="bg-slate-50/90 border-t-2 border-slate-200/80 font-semibold text-xs text-slate-700">
-                <td colSpan={2} className="py-3 px-4">
-                  <span>Showing {filteredObligations.length} of {obligations.length} total obligations</span>
+              <tr className="bg-[#141415]/80 border-t border-white/[0.08] text-[12px] text-[#a1a1a6]">
+                <td colSpan={2} className="py-3 px-4 tabular-nums">
+                  Showing {filteredObligations.length} of {obligations.length} obligations
                 </td>
-                <td colSpan={4} className="py-3 px-3 text-right text-slate-500 text-[11px] uppercase tracking-wider">
-                  Filtered Total Exposure:
+                <td colSpan={4} className="py-3 px-3 text-right text-[#71717a]">
+                  Filtered exposure
                 </td>
-                <td className="py-3 px-3 font-mono text-sm font-bold text-slate-900">
+                <td className="py-3 px-3 font-mono font-medium text-[#ededed] tabular-nums">
                   {formatCurrency(filteredTotalValue, currency, conversionMultiplier)}
                   {currency === 'INR' && filteredTotalValue * conversionMultiplier >= 100000 && (
-                    <span className="text-xs ml-1 text-emerald-700 font-normal">
+                    <span className="text-[11px] ml-1.5 text-[#71717a] font-normal">
                       ({formatIndianCompactNotation(filteredTotalValue, conversionMultiplier)})
                     </span>
                   )}
                 </td>
-                <td colSpan={2} className="py-3 px-3 text-right text-slate-400 text-[11px] no-print">
-                  All edits auto-saved in memory
+                <td colSpan={2} className="py-3 px-3 text-right text-[11px] text-[#71717a] no-print">
+                  Inline edits saved automatically
                 </td>
               </tr>
             </tfoot>
           )}
         </table>
       </div>
-
     </div>
   );
 };

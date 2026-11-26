@@ -1,14 +1,11 @@
 import React from 'react';
-import {
-  AlertCircle,
-  Clock,
-  CalendarCheck,
-  Layers,
-  ShieldAlert,
-  Flame
-} from 'lucide-react';
 import type { ContractObligation, TimelineStatus, CurrencyCode, RiskLevel } from '../types/obligation';
-import { calculateUrgency, calculateRisk, formatCurrency, formatIndianCompactNotation } from '../utils/dateUtils';
+import {
+  calculateUrgency,
+  calculateRisk,
+  formatCurrency,
+  formatIndianCompactNotation,
+} from '../utils/dateUtils';
 
 interface MetricsCardsProps {
   obligations: ContractObligation[];
@@ -31,19 +28,16 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
   currency = 'INR',
   conversionMultiplier = 1,
 }) => {
-  // Aggregate counts and values
   let overdueCount = 0;
   let overdueValue = 0;
   let dueTodayCount = 0;
   let dueTodayValue = 0;
   let upcomingCount = 0;
-  let upcomingValue = 0;
   let totalValue = 0;
   let highRiskCount = 0;
   let highRiskValue = 0;
-  let next7DaysCount = 0;
 
-  obligations.forEach(ob => {
+  obligations.forEach((ob) => {
     const val = ob.monetaryValue || 0;
     totalValue += val;
     const urgency = calculateUrgency(ob.dueDate, referenceDate);
@@ -62,199 +56,187 @@ export const MetricsCards: React.FC<MetricsCardsProps> = ({
       dueTodayValue += val;
     } else {
       upcomingCount++;
-      upcomingValue += val;
-      if (urgency.daysDiff > 0 && urgency.daysDiff <= 7) {
-        next7DaysCount++;
-      }
     }
   });
 
   const formatVal = (val: number) => {
-    const formatted = formatCurrency(val, currency, conversionMultiplier);
     if (currency === 'INR' && val * conversionMultiplier >= 100000) {
-      const compact = formatIndianCompactNotation(val, conversionMultiplier);
-      return `${formatted} • ${compact}`;
+      return formatIndianCompactNotation(val, conversionMultiplier);
     }
-    return formatted;
+    return formatCurrency(val, currency, conversionMultiplier);
   };
 
+  const overdueShare =
+    obligations.length > 0 ? Math.round((overdueCount / obligations.length) * 100) : 0;
+  const highRiskShare =
+    obligations.length > 0 ? Math.round((highRiskCount / obligations.length) * 100) : 0;
+
+  const isAllActive = activeStatusFilter === 'ALL' && activeRiskFilter === 'ALL';
+
   return (
-    <div className="space-y-3 no-print">
-      {/* Primary KPI Cards Grid */}
+    <div className="space-y-2.5 no-print">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Total Obligations */}
-        <div
-          onClick={() => onSelectFilter('ALL')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden bg-white hover:bg-slate-50/80 ${
-            activeStatusFilter === 'ALL' && activeRiskFilter === 'ALL'
-              ? 'ring-2 ring-slate-900 shadow-md border-slate-900'
-              : 'border-slate-200/90 shadow-2xs'
+        {/* Card 1: Total Obligations */}
+        <button
+          type="button"
+          onClick={() => {
+            onSelectFilter('ALL');
+            if (onSelectRiskFilter) onSelectRiskFilter('ALL');
+          }}
+          className={`text-left p-5 rounded-xl border transition-colors cursor-pointer ${
+            isAllActive
+              ? 'bg-[#202023] border-white/[0.18] raised-highlight'
+              : 'bg-[#19191b] hover:bg-[#1e1e21] border-white/[0.08]'
           }`}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Obligations</span>
-            <div className="w-8 h-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-700">
-              <Layers className="w-4 h-4" />
-            </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] text-[#a1a1a6]">Total obligations</span>
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium text-[#4cc38a] tabular-nums">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#4cc38a]"></span>
+              {upcomingCount} on track
+            </span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-slate-900">{obligations.length}</span>
-            <span className="text-xs text-slate-500">records</span>
+          <div className="flex items-baseline gap-2.5 mt-3">
+            <span className="text-[28px] font-medium text-[#ededed] tabular-nums leading-none">
+              {obligations.length}
+            </span>
+            <span className="text-[12px] text-[#71717a] tabular-nums truncate">
+              {formatVal(totalValue)} total value
+            </span>
           </div>
-          <div className="mt-2 text-xs font-semibold text-slate-600 truncate">
-            {formatVal(totalValue)}
-          </div>
-        </div>
+        </button>
 
-        {/* Overdue Milestones  */}
-        <div
-          onClick={() => onSelectFilter('OVERDUE')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
-            overdueCount > 0 ? 'bg-rose-50/40 hover:bg-rose-50/70 border-rose-200' : 'bg-white hover:bg-slate-50/80 border-slate-200/90'
-          } ${
+        {/* Card 2: Overdue */}
+        <button
+          type="button"
+          onClick={() => {
+            onSelectFilter(activeStatusFilter === 'OVERDUE' ? 'ALL' : 'OVERDUE');
+            if (onSelectRiskFilter) onSelectRiskFilter('ALL');
+          }}
+          className={`text-left p-5 rounded-xl border transition-colors cursor-pointer ${
             activeStatusFilter === 'OVERDUE'
-              ? 'ring-2 ring-rose-600 shadow-md shadow-rose-500/10'
-              : 'shadow-2xs'
+              ? 'bg-[#232325] border-[#e5484d]/50 raised-highlight'
+              : 'bg-[#19191b] hover:bg-[#1e1e21] border-white/[0.08]'
           }`}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-rose-700 uppercase tracking-wider">Overdue</span>
-            <div className="w-8 h-8 rounded-xl bg-rose-100 flex items-center justify-center text-rose-600">
-              <AlertCircle className="w-4 h-4" />
-            </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] text-[#a1a1a6]">Overdue</span>
+            <span
+              className={`inline-flex items-center gap-1.5 text-[12px] font-medium tabular-nums ${
+                overdueCount > 0 ? 'text-[#e5484d]' : 'text-[#71717a]'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  overdueCount > 0 ? 'bg-[#e5484d]' : 'bg-[#71717a]'
+                }`}
+              ></span>
+              {overdueShare}% share
+            </span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-rose-600">{overdueCount}</span>
-            <span className="text-xs text-rose-600 font-medium">breached</span>
+          <div className="flex items-baseline gap-2.5 mt-3">
+            <span className="text-[28px] font-medium text-[#ededed] tabular-nums leading-none">
+              {overdueCount}
+            </span>
+            <span className="text-[12px] text-[#71717a] tabular-nums truncate">
+              {formatVal(overdueValue)} at risk
+            </span>
           </div>
-          <div className="mt-2 text-xs font-semibold text-rose-700 truncate">
-            {formatVal(overdueValue)} exposure
-          </div>
-        </div>
+        </button>
 
-        {/* Due Today  */}
-        <div
-          onClick={() => onSelectFilter('DUE_TODAY')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
-            dueTodayCount > 0 ? 'bg-amber-50/40 hover:bg-amber-50/70 border-amber-200' : 'bg-white hover:bg-slate-50/80 border-slate-200/90'
-          } ${
+        {/* Card 3: Due Today */}
+        <button
+          type="button"
+          onClick={() => {
+            onSelectFilter(activeStatusFilter === 'DUE_TODAY' ? 'ALL' : 'DUE_TODAY');
+            if (onSelectRiskFilter) onSelectRiskFilter('ALL');
+          }}
+          className={`text-left p-5 rounded-xl border transition-colors cursor-pointer ${
             activeStatusFilter === 'DUE_TODAY'
-              ? 'ring-2 ring-amber-600 shadow-md shadow-amber-500/10'
-              : 'shadow-2xs'
+              ? 'bg-[#232325] border-[#eab308]/50 raised-highlight'
+              : 'bg-[#19191b] hover:bg-[#1e1e21] border-white/[0.08]'
           }`}
         >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-amber-800 uppercase tracking-wider">Due Today</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600">
-              <Clock className="w-4 h-4" />
-            </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] text-[#a1a1a6]">Due today</span>
+            <span
+              className={`inline-flex items-center gap-1.5 text-[12px] font-medium tabular-nums ${
+                dueTodayCount > 0 ? 'text-[#eab308]' : 'text-[#71717a]'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  dueTodayCount > 0 ? 'bg-[#eab308]' : 'bg-[#71717a]'
+                }`}
+              ></span>
+              {dueTodayCount > 0 ? 'Immediate' : 'Clear'}
+            </span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-amber-700">{dueTodayCount}</span>
-            <span className="text-xs text-amber-700 font-medium">immediate</span>
+          <div className="flex items-baseline gap-2.5 mt-3">
+            <span className="text-[28px] font-medium text-[#ededed] tabular-nums leading-none">
+              {dueTodayCount}
+            </span>
+            <span className="text-[12px] text-[#71717a] tabular-nums truncate">
+              {formatVal(dueTodayValue)} exposure
+            </span>
           </div>
-          <div className="mt-2 text-xs font-semibold text-amber-800 truncate">
-            {formatVal(dueTodayValue)}
-          </div>
-        </div>
+        </button>
 
-        {/* : High Risk Severity Scoring */}
-        <div
-          onClick={() => onSelectRiskFilter && onSelectRiskFilter(activeRiskFilter === 'HIGH' ? 'ALL' : 'HIGH')}
-          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ${
-            highRiskCount > 0 ? 'bg-purple-50/50 hover:bg-purple-50/80 border-purple-200' : 'bg-white hover:bg-slate-50/80 border-slate-200/90'
-          } ${
+        {/* Card 4: High Risk */}
+        <button
+          type="button"
+          onClick={() => {
+            if (onSelectRiskFilter) {
+              onSelectRiskFilter(activeRiskFilter === 'HIGH' ? 'ALL' : 'HIGH');
+              onSelectFilter('ALL');
+            }
+          }}
+          className={`text-left p-5 rounded-xl border transition-colors cursor-pointer ${
             activeRiskFilter === 'HIGH'
-              ? 'ring-2 ring-purple-600 shadow-md shadow-purple-500/10'
-              : 'shadow-2xs'
+              ? 'bg-[#232325] border-[#e5484d]/50 raised-highlight'
+              : 'bg-[#19191b] hover:bg-[#1e1e21] border-white/[0.08]'
           }`}
         >
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs font-semibold text-purple-900 uppercase tracking-wider">High Risk</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-200 text-purple-800 font-bold"></span>
-            </div>
-            <div className="w-8 h-8 rounded-xl bg-purple-100 flex items-center justify-center text-purple-700">
-              <ShieldAlert className="w-4 h-4" />
-            </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[13px] text-[#a1a1a6]">High risk</span>
+            <span
+              className={`inline-flex items-center gap-1.5 text-[12px] font-medium tabular-nums ${
+                highRiskCount > 0 ? 'text-[#e5484d]' : 'text-[#71717a]'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  highRiskCount > 0 ? 'bg-[#e5484d]' : 'bg-[#71717a]'
+                }`}
+              ></span>
+              {highRiskShare}% critical
+            </span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono text-purple-900">{highRiskCount}</span>
-            <span className="text-xs text-purple-700 font-medium">critical clauses</span>
+          <div className="flex items-baseline gap-2.5 mt-3">
+            <span className="text-[28px] font-medium text-[#ededed] tabular-nums leading-none">
+              {highRiskCount}
+            </span>
+            <span className="text-[12px] text-[#71717a] tabular-nums truncate">
+              {formatVal(highRiskValue)} critical
+            </span>
           </div>
-          <div className="mt-2 text-xs font-semibold text-purple-800 truncate">
-            {formatVal(highRiskValue)}
-          </div>
-        </div>
-
+        </button>
       </div>
 
-      {/* Quick-Filter Shortcuts */}
-      <div className="flex items-center gap-2 flex-wrap pt-1 text-xs">
-        <span className="text-slate-500 font-medium text-[11px] mr-1">Quick Filters :</span>
-        
-        <button
-          type="button"
-          onClick={() => {
-            onSelectFilter('OVERDUE');
-            if (onSelectRiskFilter) onSelectRiskFilter('ALL');
-          }}
-          className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeStatusFilter === 'OVERDUE'
-              ? 'bg-rose-600 text-white border-rose-600'
-              : 'bg-white text-rose-700 border-rose-200 hover:bg-rose-50'
-          }`}
-        >
-          <AlertCircle className="w-3.5 h-3.5" />
-          <span>Show Overdue Only ({overdueCount})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            onSelectFilter('UPCOMING');
-            if (onSelectRiskFilter) onSelectRiskFilter('ALL');
-          }}
-          className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeStatusFilter === 'UPCOMING'
-              ? 'bg-emerald-600 text-white border-emerald-600'
-              : 'bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-50'
-          }`}
-        >
-          <CalendarCheck className="w-3.5 h-3.5" />
-          <span>Show Upcoming Next 7 Days ({next7DaysCount})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            if (onSelectRiskFilter) onSelectRiskFilter('HIGH');
-            onSelectFilter('ALL');
-          }}
-          className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
-            activeRiskFilter === 'HIGH'
-              ? 'bg-purple-700 text-white border-purple-700'
-              : 'bg-white text-purple-700 border-purple-200 hover:bg-purple-50'
-          }`}
-        >
-          <Flame className="w-3.5 h-3.5" />
-          <span>Show High-Risk Exposure </span>
-        </button>
-
-        {(activeStatusFilter !== 'ALL' || activeRiskFilter !== 'ALL') && (
+      {!isAllActive && (
+        <div className="flex items-center justify-end">
           <button
             type="button"
             onClick={() => {
               onSelectFilter('ALL');
               if (onSelectRiskFilter) onSelectRiskFilter('ALL');
             }}
-            className="px-2 py-1 text-xs text-slate-500 hover:text-slate-800 underline cursor-pointer"
+            className="text-[12px] text-[#a1a1a6] hover:text-[#ededed] transition-colors cursor-pointer"
           >
-            Reset Filters
+            Clear active filter
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

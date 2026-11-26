@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  Search, 
-  Copy, 
-  Check, 
-  ChevronRight, 
-  Sparkles,
+import {
+  FileText,
+  Search,
+  Copy,
+  Check,
+  ChevronRight,
   EyeOff
 } from 'lucide-react';
 import type { ContractObligation, DocumentMetadata } from '../types/obligation';
@@ -30,15 +29,19 @@ export const DocumentPreviewPane: React.FC<DocumentPreviewPaneProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const rawText = metadata.rawTextPreview || `AGREEMENT: ${metadata.contractTitle}
-FILE: ${metadata.fileName} (${metadata.fileSize}, ${metadata.pageCount} pages)
-PARTIES: ${metadata.parties?.join(' & ') || 'Signatory Entities'}
+  const rawText =
+    metadata.rawTextPreview ||
+    `Agreement: ${metadata.contractTitle}
+File: ${metadata.fileName} (${metadata.fileSize}, ${metadata.pageCount} pages)
+Parties: ${metadata.parties?.join(' & ') || 'Signatory Entities'}
 
-SECTION 1: RECITALS & SCOPE
-The parties enter into this mutual binding commitment. All contractual obligations, financial parameters, milestone delivery dates, and liquidated damage penalty terms are detailed below for audit extraction.
-
-SECTION 2: OBLIGATIONS & CLAUSES
-${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.description}. Milestone Due: ${o.dueDate}. Financial Consideration: ${o.monetaryValue}. Penalty: ${o.latePenalty}.`).join('\n\n')}`;
+Extracted clauses
+${obligations
+  .map(
+    (o, idx) =>
+      `${idx + 1}. [${o.responsibleParty}] ${o.description}. Due: ${o.dueDate || 'Unspecified'}. Value: ${o.monetaryValue}. Penalty: ${o.latePenalty}.`
+  )
+  .join('\n\n')}`;
 
   const handleCopyClause = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -52,22 +55,18 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
         <button
           type="button"
           onClick={onToggle}
-          className="w-full flex items-center justify-between p-3.5 bg-white border border-slate-200/90 rounded-2xl shadow-xs hover:border-blue-400 hover:bg-blue-50/20 transition-all text-xs font-semibold text-slate-700 cursor-pointer group"
+          className="w-full flex items-center justify-between px-4 py-3 bg-[#19191b] border border-white/[0.08] hover:border-white/[0.16] hover:bg-[#1e1e21] rounded-xl transition-colors text-[13px] cursor-pointer"
         >
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center group-hover:scale-105 transition-transform">
-              <FileText className="w-4 h-4" />
-            </div>
-            <div>
-              <span className="font-bold text-slate-800">Source Document & Verbatim Clause Viewer</span>
-              <span className="text-[11px] text-slate-500 font-normal ml-2">
-                (Side-by-Side Review • {metadata.fileName})
-              </span>
-            </div>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <FileText className="w-4 h-4 text-[#85858b] flex-shrink-0 stroke-[1.5]" />
+            <span className="font-medium text-[#ededed]">Source document & verbatim clauses</span>
+            <span className="text-[12px] text-[#71717a] truncate hidden sm:inline">
+              {metadata.fileName}
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 text-blue-600 font-medium">
-            <span>Open Preview Pane</span>
-            <ChevronRight className="w-4 h-4" />
+          <div className="flex items-center gap-1 text-[12px] text-[#a1a1a6] flex-shrink-0">
+            <span>Open preview</span>
+            <ChevronRight className="w-4 h-4 stroke-[1.5]" />
           </div>
         </button>
       </div>
@@ -75,67 +74,61 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
   }
 
   return (
-    <div className="no-print bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden transition-all animate-in fade-in">
-      {/* Pane Header */}
-      <div className="px-5 py-3.5 bg-slate-50 border-b border-slate-200/80 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center">
-            <FileText className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900">
-                Source Document Preview & Verbatim Clauses
-              </h3>
-            </div>
-            <p className="text-[11px] text-slate-500">
-              {metadata.fileName} • {metadata.pageCount} pages • {metadata.fileSize}
-            </p>
-          </div>
+    <div className="no-print bg-[#19191b] rounded-xl border border-white/[0.08] overflow-hidden">
+      {/* Header */}
+      <div className="px-5 py-3.5 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="text-[14px] font-medium text-[#ededed]">
+            Source document & verbatim clauses
+          </h3>
+          <p className="text-[12px] text-[#71717a] truncate mt-0.5 font-mono tabular-nums">
+            {metadata.fileName} • {metadata.pageCount} pages
+            {metadata.fileSize ? ` • ${metadata.fileSize}` : ''}
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Search in preview */}
-          <div className="relative w-48 sm:w-60">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+          <div className="relative w-48 sm:w-56">
+            <Search className="w-3.5 h-3.5 text-[#71717a] absolute left-2.5 top-1/2 -translate-y-1/2 stroke-[1.5]" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search source document text..."
-              className="w-full text-xs pl-8 pr-2.5 py-1.5 bg-white rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              placeholder="Search document text"
+              className="w-full text-[12px] pl-8 pr-2.5 h-8 bg-[#141415] text-[#ededed] placeholder-[#71717a] rounded-lg border border-white/[0.08] focus:outline-none focus:border-white/25"
             />
           </div>
 
           <button
             type="button"
             onClick={onToggle}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 h-8 px-3 text-[12px] font-medium rounded-lg bg-[#232325] text-[#ededed] border border-white/[0.1] hover:bg-[#2a2a2d] transition-colors cursor-pointer whitespace-nowrap"
             title="Hide Source Document Preview"
           >
-            <EyeOff className="w-3.5 h-3.5 text-blue-600" />
-            <span>Hide Preview</span>
+            <EyeOff className="w-3.5 h-3.5 text-[#a1a1a6] stroke-[1.5]" />
+            <span>Hide preview</span>
           </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
-        
-        {/* Left Column: Selectable Document Text  */}
-        <div className="lg:col-span-7 p-4 sm:p-5 max-h-[380px] overflow-y-auto font-mono text-[11px] text-slate-700 leading-relaxed bg-slate-50/50 select-text space-y-3">
-          <div className="text-[11px] font-sans font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
-            <span>Selectable OCR/Text Stream</span>
-            <span className="text-[10px] text-emerald-600 font-normal">Machine-Readable PDF/DOCX</span>
+      {/* Split Content */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]">
+        {/* Left: Raw Document Text */}
+        <div className="lg:col-span-7 p-4 sm:p-5 max-h-[360px] overflow-y-auto font-mono text-[12px] text-[#a1a1a6] leading-relaxed bg-[#141415]/60 select-text space-y-3">
+          <div className="text-[12px] font-sans text-[#71717a] mb-2">
+            Extracted text stream
           </div>
 
-          <div className="p-3.5 bg-white rounded-xl border border-slate-200/80 shadow-2xs whitespace-pre-wrap">
+          <div className="p-4 bg-[#141415] rounded-lg border border-white/[0.06] whitespace-pre-wrap">
             {rawText.split('\n\n').map((paragraph, idx) => {
-              const isMatch = searchTerm.trim() && paragraph.toLowerCase().includes(searchTerm.toLowerCase().trim());
+              const isMatch =
+                searchTerm.trim() &&
+                paragraph.toLowerCase().includes(searchTerm.toLowerCase().trim());
               return (
-                <p 
-                  key={idx} 
-                  className={`mb-3 last:mb-0 transition-colors ${
-                    isMatch ? 'bg-amber-100 text-slate-900 p-1.5 rounded' : ''
+                <p
+                  key={idx}
+                  className={`mb-3 last:mb-0 ${
+                    isMatch ? 'bg-[#eab308]/15 text-[#ededed] p-1.5 rounded' : ''
                   }`}
                 >
                   {paragraph}
@@ -145,75 +138,92 @@ ${obligations.map((o, idx) => `Clause 2.${idx + 1} [${o.responsibleParty}]: ${o.
           </div>
         </div>
 
-        {/* Right Column: Linked Verbatim Clauses for Human Verification */}
-        <div className="lg:col-span-5 p-4 sm:p-5 max-h-[380px] overflow-y-auto space-y-3 bg-white">
-          <div className="flex items-center justify-between">
-            <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
-              <span>Extracted Clause Snippets ({obligations.length})</span>
-            </div>
-            <span className="text-[11px] text-slate-400">Linked to Matrix</span>
+        {/* Right: Linked Verbatim Clauses */}
+        <div className="lg:col-span-5 p-4 sm:p-5 max-h-[360px] overflow-y-auto space-y-2.5 bg-[#19191b]">
+          <div className="flex items-center justify-between text-[12px] text-[#71717a] mb-1">
+            <span>Extracted clauses ({obligations.length})</span>
+            <span>Click to link</span>
           </div>
 
-          <div className="space-y-2.5">
-            {obligations.map((ob) => {
-              const isSelected = activeClauseId === ob.id;
-              const snippet = ob.sourceClause || `Extracted from ${metadata.fileName} for ${ob.responsibleParty}: "${ob.description}" (Due: ${ob.dueDate}, Penalty: ${ob.latePenalty})`;
+          {obligations.length === 0 ? (
+            <p className="text-[12px] text-[#71717a] py-6 text-center">
+              No extracted clauses available for this document
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {obligations.map((ob, idx) => {
+                const isSelected = activeClauseId === ob.id;
+                const snippet =
+                  ob.sourceClause ||
+                  `${ob.responsibleParty}: "${ob.description}" (Due: ${ob.dueDate || 'Unspecified'})`;
 
-              return (
-                <div
-                  key={ob.id}
-                  onClick={() => onSelectObligation && onSelectObligation(ob.id)}
-                  className={`p-3 rounded-xl border text-xs transition-all cursor-pointer ${
-                    isSelected 
-                      ? 'border-blue-500 bg-blue-50/50 ring-2 ring-blue-500/10' 
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-1.5">
-                    <span className="font-mono text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                      {ob.id}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        ob.verificationStatus === 'VERIFIED'
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {ob.verificationStatus || 'VERIFIED'}
+                return (
+                  <div
+                    key={ob.id}
+                    onClick={() => onSelectObligation && onSelectObligation(ob.id)}
+                    className={`p-3 rounded-lg border text-[12px] transition-colors cursor-pointer ${
+                      isSelected
+                        ? 'border-white/30 bg-[#232325] raised-highlight'
+                        : 'border-white/[0.06] bg-[#141415]/60 hover:border-white/[0.15] hover:bg-[#1e1e21]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-mono text-[11px] tabular-nums text-[#71717a]">
+                        Clause {idx + 1}
                       </span>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopyClause(snippet, ob.id);
-                        }}
-                        className="text-slate-400 hover:text-slate-700 p-0.5 rounded"
-                        title="Copy source clause snippet"
-                      >
-                        {copiedId === ob.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1 text-[11px] ${
+                            ob.verificationStatus === 'VERIFIED'
+                              ? 'text-[#4cc38a]'
+                              : 'text-[#eab308]'
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              ob.verificationStatus === 'VERIFIED'
+                                ? 'bg-[#4cc38a]'
+                                : 'bg-[#eab308]'
+                            }`}
+                          ></span>
+                          {ob.verificationStatus === 'VERIFIED' ? 'Verified' : 'Unverified'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyClause(snippet, ob.id);
+                          }}
+                          className="text-[#71717a] hover:text-[#ededed] p-0.5 rounded cursor-pointer"
+                          title="Copy clause text"
+                        >
+                          {copiedId === ob.id ? (
+                            <Check className="w-3.5 h-3.5 text-[#4cc38a]" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5 stroke-[1.5]" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    <p className="text-[12px] text-[#a1a1a6] leading-relaxed line-clamp-3 hover:line-clamp-none">
+                      "{snippet}"
+                    </p>
+
+                    <div className="mt-2 flex items-center justify-between text-[11px] text-[#71717a]">
+                      <span className="text-[#ededed] font-medium truncate max-w-[160px]">
+                        {ob.responsibleParty}
+                      </span>
+                      <span className="font-mono tabular-nums">
+                        {ob.dueDate || 'No date'}
+                      </span>
                     </div>
                   </div>
-
-                  <p className="text-[11px] text-slate-600 italic bg-slate-50 p-2 rounded-lg border border-slate-100 line-clamp-3 hover:line-clamp-none transition-all">
-                    "{snippet}"
-                  </p>
-                  
-                  <div className="mt-2 flex items-center justify-between text-[10px] text-slate-500">
-                    <span className="font-semibold text-slate-700">{ob.responsibleParty}</span>
-                    <span className="font-mono text-slate-600">Due: {ob.dueDate}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
-
       </div>
     </div>
   );

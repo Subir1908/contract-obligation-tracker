@@ -24,7 +24,7 @@ export function normalizeDateString(dateInput: string): string {
   }
 
   // DD/MM/YYYY or DD-MM-YYYY (e.g. 25/12/2026 or 25-12-2026)
-  const dmyMatch = trimmed.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  const dmyMatch = trimmed.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/);
   if (dmyMatch) {
     const p1 = parseInt(dmyMatch[1], 10);
     const p2 = parseInt(dmyMatch[2], 10);
@@ -150,7 +150,7 @@ export function formatCurrency(
   multiplier: number = 1
 ): string {
   const computedValue = (value || 0) * multiplier;
-  if (isNaN(computedValue)) return currency === 'INR' ? '₹0' : '.00';
+  if (isNaN(computedValue)) return currency === 'INR' ? '₹0' : '$0';
 
   if (currency === 'INR') {
     return new Intl.NumberFormat('en-IN', {
